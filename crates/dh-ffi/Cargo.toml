@@ -1,0 +1,27 @@
+[package]
+name = "dh-ffi"
+description = "UniFFI surface exposing dh-domain to the Swift (macOS) UI"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["lib", "staticlib", "cdylib"]
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi-bindgen.rs"
+
+[dependencies]
+dh-core = { workspace = true }
+dh-domain = { workspace = true }
+dh-qs-core = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+uniffi = { version = "0.32", features = ["cli"] }
+
+[lints]
+workspace = true

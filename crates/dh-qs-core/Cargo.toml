@@ -1,0 +1,17 @@
+[package]
+name = "dh-qs-core"
+description = "Quick Share front door: adapts rqs_lib to the dh-domain front-door seam"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+dh-domain = { workspace = true }
+rqs_lib = { workspace = true }
+tokio = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[lints]
+workspace = true

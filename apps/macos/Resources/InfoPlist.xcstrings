@@ -1,0 +1,102 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "CFBundleDisplayName" : {
+      "comment" : "Bundle display name",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "DroidHarbor Dev"
+          }
+        }
+      }
+    },
+    "CFBundleName" : {
+      "comment" : "Bundle name",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "DroidHarborDev"
+          }
+        }
+      }
+    },
+    "NSBluetoothAlwaysUsageDescription" : {
+      "comment" : "Shown by macOS when the app first asks for Bluetooth.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DroidHarbor uses Bluetooth to notice when a nearby Android device starts sharing, so this Mac shows up in its share sheet faster."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DroidHarbor usa Bluetooth para detectar cuándo un dispositivo Android cercano empieza a compartir, así este Mac aparece antes en su menú de compartir."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DroidHarbor utilise le Bluetooth pour détecter qu’un appareil Android proche commence un partage, afin que ce Mac apparaisse plus vite dans sa feuille de partage."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DroidHarbor usa il Bluetooth per accorgersi quando un dispositivo Android vicino inizia a condividere, così questo Mac compare prima nel suo menu di condivisione."
+          }
+        }
+      }
+    },
+    "NSHumanReadableCopyright" : {
+      "comment" : "Copyright (human-readable)",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Copyright ©. All rights reserved."
+          }
+        }
+      }
+    },
+    "NSLocalNetworkUsageDescription" : {
+      "comment" : "Shown by macOS when the app first looks for devices on the network.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DroidHarbor finds nearby Android devices on your local network and transfers files directly with them, without going through the internet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DroidHarbor encuentra dispositivos Android cercanos en tu red local y transfiere archivos directamente con ellos, sin pasar por internet."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DroidHarbor trouve les appareils Android proches sur votre réseau local et échange les fichiers directement avec eux, sans passer par internet."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DroidHarbor trova i dispositivi Android vicini sulla rete locale e trasferisce i file direttamente con loro, senza passare da internet."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.1"
+}

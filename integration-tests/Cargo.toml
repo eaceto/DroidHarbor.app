@@ -1,0 +1,18 @@
+[package]
+name = "integration-tests"
+description = "Headless tests driving dh-domain through the same API the UIs use"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+
+[dev-dependencies]
+dh-core = { workspace = true }
+dh-domain = { workspace = true }
+tokio = { workspace = true, features = ["test-util"] }
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

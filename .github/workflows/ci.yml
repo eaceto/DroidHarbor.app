@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    name: Rust (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # Both target platforms: the data and domain layers must stay
+        # portable even while only the macOS UI ships.
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      # Linux only. rqs_lib reaches Bluetooth through bluer and btleplug,
+      # which bind to the system dbus, so libdbus-sys wants dbus-1.pc at
+      # build time. macOS never sees that path. Without this the build
+      # script panics and every gate below is skipped.
+      - name: Install dbus headers (rqs_lib build dependency on Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libdbus-1-dev pkg-config
+      - name: Install protoc (rqs_lib build dependency)
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Test
+        run: cargo test --workspace
+
+  macos-app:
+    name: macOS app
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install protoc (rqs_lib build dependency)
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install Tuist
+        run: brew install --quiet tuist
+      - name: Build the Rust core and bindings
+        working-directory: apps/macos
+        run: ./build-rust.sh
+      - name: Generate the Xcode project
+        working-directory: apps/macos
+        run: tuist generate --no-open
+      # Signing needs credentials CI does not have; the point here is that
+      # the app and its tests still compile and pass.
+      - name: Test
+        working-directory: apps/macos
+        run: |
+          xcodebuild test \
+            -workspace DroidHarbor.xcworkspace \
+            -scheme DroidHarbor \
+            -destination 'platform=macOS' \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""

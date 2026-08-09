@@ -1,0 +1,42 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/dh-core",
+    "crates/dh-qs-core",
+    "crates/dh-domain",
+    "crates/dh-ffi",
+    "apps/cli",
+    "integration-tests",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/eaceto/DroidHarbor.app"
+
+[workspace.dependencies]
+dh-core = { path = "crates/dh-core" }
+dh-qs-core = { path = "crates/dh-qs-core" }
+dh-domain = { path = "crates/dh-domain" }
+
+# GPL-3.0 Quick Share protocol implementation (the reason this project is
+# GPL). Our fork of Martichou/rquickshare: patches (e.g. configurable device
+# name) land there. Not on crates.io; pinned to an exact revision so protocol
+# behavior only changes when we deliberately bump it. Requires `protoc`.
+rqs_lib = { git = "https://github.com/eaceto/rquickshare", rev = "4c9c714148138a3ed4c456ceef508614a1c52c20" }
+
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net", "io-util"] }
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+clap = { version = "4", features = ["derive"] }
+unicode-normalization = "0.1"
+libc = "0.2"
+tempfile = "3"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+unwrap_used = "warn"

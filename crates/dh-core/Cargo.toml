@@ -1,0 +1,18 @@
+[package]
+name = "dh-core"
+description = "Filesystem safety and transfer limits shared by all aft front doors"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+thiserror = { workspace = true }
+unicode-normalization = { workspace = true }
+libc = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

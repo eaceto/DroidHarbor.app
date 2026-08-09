@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DroidHarbor · Android Quick Share for your Mac</title>
+<meta name="description" content="Receive files from Android's built-in Quick Share on your Mac, and send files, links and text back. Everything stays on your local network.">
+<link rel="icon" href="images/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="images/icon.png">
+<link rel="stylesheet" href="styles.css">
+<meta property="og:title" content="DroidHarbor · Android Quick Share for your Mac">
+<meta property="og:description" content="Receive files from Android's built-in Quick Share on your Mac, and send files, links and text back. Nothing goes through the cloud.">
+<meta property="og:image" content="https://eaceto.github.io/DroidHarbor.app/images/icon.png">
+<meta property="og:url" content="https://eaceto.github.io/DroidHarbor.app/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="shell">
+    <a class="wordmark" href="#top"><img src="images/icon.png" alt="">DroidHarbor</a>
+    <nav>
+      <a href="#install">Install</a>
+      <a href="#receive">Receive</a>
+      <a href="#send">Send files</a>
+      <a href="#text">Send text</a>
+      <a href="#privacy">Privacy</a>
+      <a class="persist" href="https://github.com/eaceto/DroidHarbor.app">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+<div class="hero">
+  <div class="shell">
+    <div>
+      <p class="label">macOS · Quick Share</p>
+      <h1>Your Mac, in Android's share sheet.</h1>
+      <p class="lede">
+        DroidHarbor puts your Mac where your phone already looks. Pick a photo,
+        tap <strong>Share → Quick Share</strong>, and it lands in a folder you
+        chose. Send files, links and text back the same way. Nothing goes
+        through the cloud, and there is no account to make.
+      </p>
+      <div class="actions">
+        <a class="btn btn-primary" href="#install">Get DroidHarbor</a>
+        <a class="btn" href="https://github.com/eaceto/DroidHarbor.app">Source on GitHub</a>
+      </div>
+      <p class="note meta">
+        <span>Universal, Apple Silicon and Intel</span>
+        <span>macOS 14 or later</span>
+        <span>Free, GPL-3.0</span>
+        <span>English, Spanish, Italian, French</span>
+      </p>
+    </div>
+
+    <!-- The app's own mark: arcs that radiate the way its menu-bar tile does
+         while the Mac is listening. -->
+    <div class="beacon" aria-hidden="true">
+      <svg viewBox="0 0 256 256" role="img">
+        <defs>
+          <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#3d5464"/>
+            <stop offset="100%" stop-color="#132430"/>
+          </linearGradient>
+        </defs>
+        <rect x="8" y="8" width="240" height="240" rx="56" fill="url(#tile)"/>
+        <g fill="none" stroke="#2dd4bf" stroke-linecap="round" stroke-width="11">
+          <circle cx="128" cy="128" r="15" fill="#2dd4bf" stroke="none"/>
+          <path class="arc arc-1" d="M100 100a40 40 0 0 0 0 56"/>
+          <path class="arc arc-1" d="M156 100a40 40 0 0 1 0 56"/>
+          <path class="arc arc-2" d="M76 84a70 70 0 0 0 0 88" opacity="0.85"/>
+          <path class="arc arc-2" d="M180 84a70 70 0 0 1 0 88" opacity="0.85"/>
+          <path class="arc arc-3" d="M52 68a100 100 0 0 0 0 120" opacity="0.6"/>
+          <path class="arc arc-3" d="M204 68a100 100 0 0 1 0 120" opacity="0.6"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<section id="what">
+  <div class="shell">
+    <p class="label">What it is</p>
+    <h2>Quick Share, without the missing half.</h2>
+    <p>
+      Android has excellent built-in sharing between nearby devices. Macs were
+      never invited. DroidHarbor speaks the same protocol, so your phone finds
+      your Mac in the share sheet it already uses. No app on the phone, no
+      QR codes, no uploading a file to yourself.
+    </p>
+
+    <div class="grid grid-3">
+      <div class="card">
+        <span class="icon" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/></svg>
+        </span>
+        <h3>Receive from the phone</h3>
+        <p>Photos, videos, APKs and documents, plus links, contacts, calendar events, addresses and phone numbers. Each one is handled as what it actually is.</p>
+      </div>
+      <div class="card">
+        <span class="icon" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9"/><path d="m7 14 5-5 5 5"/><path d="M4 4h16"/></svg>
+        </span>
+        <h3>Send back to the phone</h3>
+        <p>Drop files on the menu-bar icon, or send a link or a note straight from the Mac. Right-click in Finder works too.</p>
+      </div>
+      <div class="card">
+        <span class="icon" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
+        </span>
+        <h3>Stays on your network</h3>
+        <p>Devices find each other over the local network and transfer directly. No cloud service, no account, no telemetry.</p>
+      </div>
+    </div>
+
+    <p class="label" style="margin-top:2.5rem">Things that travel well</p>
+    <ul class="chips">
+      <li>Photos</li><li>Videos</li><li>Documents</li><li>APKs</li><li>Audio</li>
+      <li>Links</li><li>Plain text</li><li>Contacts (.vcf)</li><li>Calendar events (.ics)</li>
+      <li>Phone numbers</li><li>Addresses</li><li>Wi-Fi credentials</li>
+    </ul>
+  </div>
+</section>
+
+<section id="install">
+  <div class="shell">
+    <p class="label">Install</p>
+    <h2>Two minutes, then forget it's there.</h2>
+
+    <ol class="steps">
+      <li><div>
+        <strong>Get the app.</strong>
+        <p>Download the notarized DMG from the
+        <a href="https://github.com/eaceto/DroidHarbor.app/releases">releases page</a>,
+        or build it yourself with the commands below.</p>
+      </div></li>
+      <li><div>
+        <strong>Drag DroidHarbor to Applications</strong>, then open it.
+        <p>The DMG shows the Applications folder beside the app, so it is one drag.</p>
+      </div></li>
+      <li><div>
+        <strong>Allow local network access</strong> when macOS asks.
+        <p>This is how the phone and the Mac find each other. Bluetooth, if you allow it, only makes discovery faster.</p>
+      </div></li>
+      <li><div>
+        <strong>Turn the extension on</strong>, so you can send from Finder.
+        <p>macOS ships third-party extensions switched off. To get
+        <strong>Share… → DroidHarbor</strong> in Finder, enable it in
+        System Settings → General → Login Items &amp; Extensions.</p>
+      </div></li>
+      <li><div>
+        <strong>Switch Receiving on</strong> from the menu-bar icon.
+        <p>Your Mac now appears in nearby Android share sheets under the name shown in Settings.</p>
+      </div></li>
+    </ol>
+
+    <figure class="shot narrow" data-pending="images/menu-bar.png">
+      <img src="images/menu-bar.png" alt="The DroidHarbor menu-bar popover with Receiving switched on, showing quick actions and the save folder." loading="lazy">
+      <figcaption>The menu-bar popover: the switch, the quick actions, and where files are saved.</figcaption>
+    </figure>
+
+    <h3 style="margin-top:2.8rem">Build from source</h3>
+    <p class="note">Requires Rust (stable), Xcode, <code>protoc</code> and <a href="https://tuist.dev">Tuist</a>.</p>
+<pre><code><span class="c"># clone into a plain folder name: macOS treats a .app directory as a bundle</span>
+git clone https://github.com/eaceto/DroidHarbor.app.git droidharbor
+cd droidharbor/apps/macos
+tuist generate
+
+<span class="c"># or produce a signed, notarized DMG (needs a Developer ID)</span>
+./release.sh 1.0.0</code></pre>
+    <p class="note">There is also a headless CLI for testing the protocol without the app:</p>
+<pre><code>cargo run -p dh-cli -- --help</code></pre>
+  </div>
+</section>
+
+<section id="receive">
+  <div class="shell">
+    <p class="label">Phone → Mac</p>
+    <h2>Receiving a file</h2>
+    <p>
+      Anything you can share on Android can come to the Mac. The Mac stays
+      invisible until you switch Receiving on, and every transfer needs your
+      explicit acceptance.
+    </p>
+
+    <ol class="steps">
+      <li><div>
+        <strong>On the Mac:</strong> switch <strong>Receiving</strong> on.
+        <p>Set it to turn itself off after 10 minutes, 30 minutes or an hour in Settings if you would rather not stay visible.</p>
+      </div></li>
+      <li><div>
+        <strong>On the phone:</strong> pick the file → <strong>Share</strong> → <strong>Quick Share</strong> → tap your Mac.
+      </div></li>
+      <li><div>
+        <strong>Check the four-digit code matches</strong>, then accept.
+        <p>The same code appears on both screens. It is what tells you the device you tapped is the device you are talking to.</p>
+      </div></li>
+      <li><div>
+        <strong>The file lands in your folder.</strong>
+        <p>By default <code>~/Downloads/droidharbor</code>. Received items are never overwritten. A second copy of the same name gets its own.</p>
+      </div></li>
+    </ol>
+
+    <figure class="shot" data-pending="images/window-receive.png">
+      <img src="images/window-receive.png" alt="The DroidHarbor window showing an incoming transfer with a four-digit confirmation code and Accept and Decline buttons." loading="lazy">
+      <figcaption>An incoming transfer, with the code to check and the choice to make. Notifications carry the same Accept and Decline.</figcaption>
+    </figure>
+
+    <figure class="shot" data-pending="images/window-receive-multiple-files.png">
+      <img src="images/window-receive-multiple-files.png" alt="DroidHarbor receiving eight files, showing overall progress with speed and time remaining, and each file marked done, in progress or waiting." loading="lazy">
+      <figcaption>A batch in flight: the total with speed and time remaining, and every file's own state, whether finished, running or still queued.</figcaption>
+    </figure>
+
+    <div class="callout">
+      <p><strong>Trusted devices.</strong> Tick <em>Always accept</em> when you accept a transfer and that phone skips the prompt next time. Devices are matched by the name they announce, which a device chooses for itself, so trust the ones you own.</p>
+    </div>
+
+    <h3 style="margin-top:2.8rem">Everything that arrived, in one place</h3>
+    <p>
+      History keeps files, links, text, contacts, events, numbers and addresses
+      together, each with the actions that suit it: reveal a file in Finder,
+      open a link, call a number, add a contact. Filter by type, or search by
+      name, extension, domain or sender.
+    </p>
+    <figure class="shot" data-pending="images/window-history.png">
+      <img src="images/window-history.png" alt="The DroidHarbor history list with type filters, showing received files and links." loading="lazy">
+      <figcaption>History, filtered by type and searchable. It lives in <code>~/.droidharbor/history.json</code>, as plain readable JSON you own.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="send">
+  <div class="shell">
+    <p class="label">Mac → Phone</p>
+    <h2>Sending files</h2>
+    <p>
+      The phone has to be looking: open <strong>Quick Share</strong> on Android
+      (Settings → Connected devices, or the Files app) so it becomes
+      discoverable, then pick it from the list on the Mac and accept the
+      transfer on the phone.
+    </p>
+
+    <ul class="ways">
+      <li><span class="way">Menu bar</span><span>Drag files onto the DroidHarbor icon and drop.</span></li>
+      <li><span class="way">Send tab</span><span>Drop them in the window, or choose them with <kbd>⌘O</kbd>.</span></li>
+      <li><span class="way">Finder</span><span>Right-click a file → <strong>Share…</strong> → <strong>DroidHarbor</strong>.</span></li>
+      <li><span class="way">Progress</span><span>Speed and time remaining while it goes, per item.</span></li>
+    </ul>
+
+    <figure class="shot" data-pending="images/window-send.png">
+      <img src="images/window-send.png" alt="The Send tab of DroidHarbor with a drop zone and a list of nearby Android devices." loading="lazy">
+      <figcaption>Drop something, pick the phone, accept on the phone.</figcaption>
+    </figure>
+
+    <figure class="shot" data-pending="images/window-send-large-file.png">
+      <img src="images/window-send-large-file.png" alt="DroidHarbor sending a 524.9 MB file to a Pixel 8, showing progress and a Cancel button." loading="lazy">
+      <figcaption>Half a gigabyte on its way out, with a Cancel button for as long as it takes.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="text">
+  <div class="shell">
+    <p class="label">Mac → Phone</p>
+    <h2>Sending a link or a note</h2>
+    <p>
+      Not everything worth sending is a file. Copy a URL on the Mac and it
+      arrives on the phone as a link it offers to open, not as a text file to
+      find and delete later. DroidHarbor tells the phone what kind of text it
+      is sending, so the phone offers the right thing.
+    </p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>What you send</th><th>What the phone offers</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>A web address</td><td>Open it in the browser</td></tr>
+          <tr><td>A phone number</td><td>Dial it</td></tr>
+          <tr><td>A map link or address</td><td>Open it in Maps</td></tr>
+          <tr><td>Anything else</td><td>Plain text, ready to copy</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ul class="ways">
+      <li><span class="way">Clipboard</span><span><kbd>⇧⌘V</kbd>, or <strong>Send clipboard text</strong> in the menu bar.</span></li>
+      <li><span class="way">Compose</span><span><strong>Send Text…</strong> in the Send tab opens a box, pre-filled from the clipboard.</span></li>
+      <li><span class="way">Drag</span><span>Drag selected text, or a link from your browser's address bar, onto the icon.</span></li>
+      <li><span class="way">Share</span><span>Select text in any app → <strong>Share…</strong> → <strong>DroidHarbor</strong>.</span></li>
+    </ul>
+
+    <figure class="shot medium" data-pending="images/send-text.png">
+      <img src="images/send-text.png" alt="The Send Text sheet in DroidHarbor with a URL typed in and a hint saying the phone can open it in a browser." loading="lazy">
+      <figcaption>The sheet says what the phone will make of it before you send.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="shortcuts">
+  <div class="shell">
+    <p class="label">Reference</p>
+    <h2>Keyboard and settings</h2>
+
+    <div class="grid grid-2">
+      <div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Shortcut</th><th>Does</th></tr></thead>
+            <tbody>
+              <tr><td><kbd>⌘R</kbd></td><td>Start or stop receiving</td></tr>
+              <tr><td><kbd>⌘O</kbd></td><td>Choose files to send</td></tr>
+              <tr><td><kbd>⇧⌘V</kbd></td><td>Send the clipboard's text</td></tr>
+              <tr><td><kbd>⌘1</kbd> <kbd>⌘2</kbd> <kbd>⌘3</kbd></td><td>Transfers, Send, Settings</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div>
+        <ul class="ways">
+          <li><span class="way">Name</span><span>What nearby phones call this Mac.</span></li>
+          <li><span class="way">Folder</span><span>Where received files land.</span></li>
+          <li><span class="way">Idle</span><span>Turn receiving off by itself after 10, 30 or 60 minutes.</span></li>
+          <li><span class="way">Login</span><span>Open at login, quietly in the menu bar.</span></li>
+          <li><span class="way">Alerts</span><span>Notifications with Open and Show in Finder, and optional sounds.</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <figure class="shot" data-pending="images/window-settings.png">
+      <img src="images/window-settings.png" alt="The Settings tab of DroidHarbor showing device name, save folder, idle timeout, notifications and trusted devices." loading="lazy">
+      <figcaption>Settings, including the list of devices you have chosen to trust.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="privacy">
+  <div class="shell">
+    <p class="label">Honesty</p>
+    <h2>What it does, and what it can't</h2>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>Your files stay yours</h3>
+        <p>Transfers happen directly between the two devices on your local network. There is no server in the middle, no account, no analytics, and release builds write no logs. History is a JSON file in your home folder.</p>
+      </div>
+      <div class="card">
+        <h3>You are always asked</h3>
+        <p>The Mac is invisible until you switch receiving on, every transfer needs acceptance, and the four-digit code must match the phone. Trusted devices are the one exception, and you choose them one at a time.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p><strong>Unofficial protocol.</strong> Quick Share (Nearby Sharing) has no public specification. DroidHarbor implements a reverse-engineered version of it, built on the <a href="https://github.com/Martichou/rquickshare">rquickshare</a> library, and an Android or Play Services update could break it without warning. It is not affiliated with, or endorsed by, Google.</p>
+      <p><strong>Current limits.</strong> Folders cannot be sent yet, only files. One transfer runs at a time. The phone must have Quick Share open on screen to be discoverable when the Mac is the one sending.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="shell">
+    <div>
+      <p><strong>DroidHarbor</strong> is free software under the GNU General Public License v3.0 or later. Built by <a href="https://github.com/eaceto">Ezequiel Aceto</a>.</p>
+      <p class="note">Android and Quick Share are trademarks of Google LLC. This project is independent of Google.</p>
+    </div>
+    <nav>
+      <a href="https://github.com/eaceto/DroidHarbor.app">Source code</a>
+      <a href="https://github.com/eaceto/DroidHarbor.app/releases">Releases</a>
+      <a href="https://github.com/eaceto/DroidHarbor.app/issues">Report a problem</a>
+      <a href="https://www.gnu.org/licenses/gpl-3.0.html">License</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+  // Say which screenshot is missing instead of showing a broken image.
+  for (const figure of document.querySelectorAll('.shot[data-pending]')) {
+    const img = figure.querySelector('img');
+    if (!img) continue;
+    if (img.complete && img.naturalWidth === 0) figure.classList.add('is-missing');
+    img.addEventListener('error', () => figure.classList.add('is-missing'));
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,310 @@
+/* DroidHarbor Project site */
+
+:root {
+  --ink: #0a141a;
+  --hull: #10202a;
+  --panel: #14262f;
+  --edge: #23414f;
+  --sand: #e8f1f4;
+  --muted: #93aab5;
+  --teal: #2dd4bf;
+  --teal-deep: #14b8a6;
+  --teal-glow: rgba(45, 212, 191, 0.16);
+  --amber: #eab464;
+  --radius: 14px;
+  --measure: 66ch;
+  --shell: 1120px;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --ink: #f6f9fa;
+    --hull: #ffffff;
+    --panel: #ffffff;
+    --edge: #d3e0e5;
+    --sand: #0d1f28;
+    --muted: #5a7180;
+    --teal: #0f8f84;
+    --teal-deep: #0b6f66;
+    --teal-glow: rgba(15, 143, 132, 0.1);
+    --amber: #a86a1d;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--sand);
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The night harbour: a single teal glow behind the masthead, nothing more. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -30vh 0 auto 0;
+  height: 90vh;
+  background: radial-gradient(60% 50% at 50% 30%, var(--teal-glow), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.shell { width: min(100% - 2.5rem, var(--shell)); margin-inline: auto; }
+
+main, header, footer { position: relative; z-index: 1; }
+
+/* ---------- Type ---------- */
+
+h1, h2, h3 { line-height: 1.12; letter-spacing: -0.025em; margin: 0; font-weight: 700; text-wrap: balance; }
+h1 { font-size: clamp(2.6rem, 6.5vw, 4.4rem); letter-spacing: -0.04em; }
+h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); }
+h3 { font-size: 1.12rem; letter-spacing: -0.01em; }
+p { margin: 0 0 1rem; max-width: var(--measure); }
+a { color: var(--teal); text-underline-offset: 3px; }
+a:hover { color: var(--sand); }
+strong { color: var(--sand); font-weight: 650; }
+
+/* Signal callsigns: the small monospace labels that name each section. */
+.label {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin: 0 0 0.9rem;
+}
+
+.lede { font-size: 1.2rem; color: var(--muted); }
+.note { font-size: 0.95rem; color: var(--muted); }
+
+code, kbd, .mono { font-family: var(--mono); font-size: 0.88em; }
+code { background: var(--panel); border: 1px solid var(--edge); border-radius: 6px; padding: 0.1em 0.4em; }
+kbd {
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  padding: 0.15em 0.45em;
+  color: var(--sand);
+  white-space: nowrap;
+}
+
+/* ---------- Masthead ---------- */
+
+.masthead {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: saturate(140%) blur(14px);
+  background: color-mix(in srgb, var(--ink) 82%, transparent);
+  border-bottom: 1px solid var(--edge);
+}
+.masthead .shell { display: flex; align-items: center; gap: 1.4rem; height: 60px; }
+.wordmark { display: flex; align-items: center; gap: 0.55rem; font-weight: 650; color: var(--sand); text-decoration: none; letter-spacing: -0.02em; }
+.wordmark img { width: 24px; height: 24px; border-radius: 6px; }
+.masthead nav { display: flex; gap: 1.2rem; margin-left: auto; font-size: 0.92rem; }
+.masthead nav a { color: var(--muted); text-decoration: none; }
+.masthead nav a:hover { color: var(--sand); }
+@media (max-width: 720px) { .masthead nav a:not(.persist) { display: none; } }
+
+/* ---------- Hero ---------- */
+
+.hero { padding: clamp(3.5rem, 9vw, 6.5rem) 0 clamp(3rem, 6vw, 4.5rem); }
+.hero .shell { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: clamp(2rem, 5vw, 4rem); align-items: center; }
+@media (max-width: 860px) { .hero .shell { grid-template-columns: 1fr; } .beacon { order: -1; } }
+
+.hero p.lede { font-size: clamp(1.1rem, 2.2vw, 1.35rem); margin-top: 1.4rem; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 2rem 0 1.1rem; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.2rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.98rem;
+  text-decoration: none;
+  border: 1px solid var(--edge);
+  color: var(--sand);
+  background: var(--panel);
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.btn:hover { transform: translateY(-1px); border-color: var(--teal); color: var(--sand); }
+.btn-primary { background: var(--teal); border-color: var(--teal); color: #04191c; }
+.btn-primary:hover { background: var(--teal-deep); border-color: var(--teal-deep); color: #04191c; }
+
+:where(a, button):focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; border-radius: 6px; }
+
+/* The signature: the app's own mark, radiating the way its menu-bar tile
+   does while the Mac is listening. */
+.beacon { display: grid; place-items: center; }
+.beacon svg { width: min(300px, 70vw); height: auto; }
+.beacon .arc { transform-origin: 128px 128px; }
+.beacon .arc-1 { animation: pulse 3.6s ease-out infinite; }
+.beacon .arc-2 { animation: pulse 3.6s ease-out 0.45s infinite; }
+.beacon .arc-3 { animation: pulse 3.6s ease-out 0.9s infinite; }
+@keyframes pulse {
+  0%, 100% { opacity: 0.35; }
+  40% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .beacon .arc { animation: none; opacity: 0.9; }
+  html { scroll-behavior: auto; }
+}
+
+.meta { display: flex; flex-wrap: wrap; gap: 0.1rem 0.9rem; max-width: 44rem; }
+.meta span { white-space: nowrap; }
+.meta span + span::before { content: "\00b7"; margin-right: 0.9rem; opacity: 0.6; }
+
+/* ---------- Sections ---------- */
+
+section { padding: clamp(3rem, 7vw, 5rem) 0; border-top: 1px solid var(--edge); }
+section > .shell > h2 + p { margin-top: 0.9rem; }
+
+.grid { display: grid; gap: 1.1rem; margin-top: 2rem; }
+/* Grid and flex children are min-width:auto by default, so a wide child (the
+   shortcut table) would push the whole page wider than the screen. */
+.grid > *, .hero .shell > * { min-width: 0; }
+.grid-3 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+.grid-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+
+.card {
+  background: var(--hull);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  padding: 1.4rem;
+}
+.card h3 { margin-bottom: 0.5rem; }
+.card p { margin: 0; color: var(--muted); font-size: 0.97rem; }
+.card .icon { color: var(--teal); display: block; margin-bottom: 0.8rem; }
+
+/* Ordered steps. Numbered because these genuinely happen in order. */
+.steps { counter-reset: step; list-style: none; padding: 0; margin: 2rem 0 0; display: grid; gap: 1rem; }
+.steps li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 2.2rem 1fr;
+  gap: 1rem;
+  align-items: start;
+  max-width: var(--measure);
+}
+.steps li::before {
+  content: counter(step);
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  color: var(--teal);
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  width: 2.2rem;
+  height: 2.2rem;
+  display: grid;
+  place-items: center;
+}
+.steps li > div { padding-top: 0.2rem; }
+.steps p { margin: 0.2rem 0 0; color: var(--muted); font-size: 0.97rem; }
+
+/* Unordered "ways to do it", labelled, not numbered. */
+.ways { list-style: none; padding: 0; margin: 1.6rem 0 0; display: grid; gap: 0.7rem; }
+.ways li { display: grid; grid-template-columns: auto 1fr; gap: 0.8rem; align-items: baseline; }
+.ways .way { font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--teal); white-space: nowrap; }
+
+/* ---------- Screenshots ---------- */
+
+.shot { margin: 2rem 0 0; }
+.shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+}
+.shot figcaption { margin-top: 0.7rem; font-size: 0.9rem; color: var(--muted); }
+.shot.narrow { max-width: 420px; }
+.shot.medium { max-width: 720px; }
+
+/* Until a screenshot is dropped in, say which file is missing rather than
+   showing a broken image. */
+.shot.is-missing img { display: none; }
+.shot.is-missing::before {
+  content: "Screenshot pending · " attr(data-pending);
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 10;
+  border: 1px dashed var(--edge);
+  border-radius: var(--radius);
+  background: var(--hull);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  text-align: center;
+  padding: 1rem;
+}
+
+/* ---------- Tables ---------- */
+
+.table-wrap { overflow-x: auto; margin-top: 1.8rem; }
+table { border-collapse: collapse; width: 100%; min-width: 340px; font-size: 0.96rem; }
+th, td { text-align: left; padding: 0.7rem 1rem; border-bottom: 1px solid var(--edge); vertical-align: top; }
+th { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--teal); font-weight: 500; }
+td:first-child { color: var(--sand); white-space: nowrap; }
+td { color: var(--muted); }
+
+/* ---------- Code blocks ---------- */
+
+pre {
+  max-width: 760px;
+  background: var(--hull);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.2rem;
+  overflow-x: auto;
+  margin: 1.4rem 0;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+pre code { background: none; border: 0; padding: 0; color: var(--sand); }
+pre .c { color: var(--muted); }
+
+/* ---------- Chips ---------- */
+
+.chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1.6rem 0 0; padding: 0; list-style: none; }
+.chips li {
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  padding: 0.32rem 0.85rem;
+  font-size: 0.88rem;
+  color: var(--muted);
+  background: var(--hull);
+}
+
+/* ---------- Callout ---------- */
+
+.callout {
+  border: 1px solid var(--edge);
+  border-left: 3px solid var(--amber);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--hull);
+  padding: 1.1rem 1.3rem;
+  margin: 1.8rem 0 0;
+}
+.callout p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+.callout p + p { margin-top: 0.6rem; }
+.callout strong { color: var(--sand); }
+
+/* ---------- Footer ---------- */
+
+footer { border-top: 1px solid var(--edge); padding: 3rem 0 4rem; color: var(--muted); font-size: 0.92rem; }
+footer .shell { display: flex; flex-wrap: wrap; gap: 1.5rem; justify-content: space-between; align-items: flex-start; }
+footer p { margin: 0 0 0.5rem; max-width: 46ch; }
+footer nav { display: grid; gap: 0.4rem; }
+footer a { color: var(--muted); text-decoration: none; }
+footer a:hover { color: var(--teal); }
