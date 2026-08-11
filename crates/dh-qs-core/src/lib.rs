@@ -1,7 +1,9 @@
 //! Quick Share front door.
 //!
-//! Wraps [rquickshare](https://github.com/Martichou/rquickshare)'s `rqs_lib`
-//! (GPL-3.0, rev-pinned), which implements the reverse-engineered Nearby
+//! Wraps `rqs_lib` (GPL-3.0, rev-pinned) from
+//! [our fork](https://github.com/eaceto/rquickshare) of
+//! [rquickshare](https://github.com/Martichou/rquickshare), which implements
+//! the reverse-engineered Nearby
 //! Sharing protocol: mDNS advertisement, UKEY2 handshake, the encrypted
 //! channel, and payload reception.
 //!

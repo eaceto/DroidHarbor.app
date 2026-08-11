@@ -115,7 +115,7 @@ struct SettingsView: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                Text("DroidHarbor implements an unofficial, reverse-engineered protocol and may stop working after an Android update. Files never leave your local network.")
+                Text("DroidHarbor implements an unofficial, reverse-engineered protocol in order to interoperate with the sharing built into Android, and may stop working after an Android update. Files never leave your local network.")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .fixedSize(horizontal: false, vertical: true)

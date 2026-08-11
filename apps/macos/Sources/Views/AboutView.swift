@@ -56,11 +56,14 @@ struct AboutView: View {
                 .font(.callout)
             }
 
-            Text("Implements an unofficial, reverse-engineered protocol; not affiliated with or endorsed by Google or Android.")
-                .font(.caption2)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.tertiary)
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(spacing: 4) {
+                Text("Implements an unofficial, reverse-engineered protocol in order to interoperate with the sharing built into Android; not affiliated with or endorsed by Google or Android.")
+                Text("Android and Quick Share are trademarks of Google LLC.")
+            }
+            .font(.caption2)
+            .multilineTextAlignment(.center)
+            .foregroundStyle(.tertiary)
+            .fixedSize(horizontal: false, vertical: true)
 
             if let update = state.availableUpdate {
                 Divider()

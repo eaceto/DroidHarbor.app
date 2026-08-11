@@ -1,6 +1,29 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Android and Quick Share are trademarks of Google LLC." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android y Quick Share son marcas comerciales de Google LLC."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android et Quick Share sont des marques de Google LLC."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android e Quick Share sono marchi di Google LLC."
+          }
+        }
+      }
+    },
     "·" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1728,25 +1751,25 @@
         }
       }
     },
-    "DroidHarbor implements an unofficial, reverse-engineered protocol and may stop working after an Android update. Files never leave your local network." : {
+    "DroidHarbor implements an unofficial, reverse-engineered protocol in order to interoperate with the sharing built into Android, and may stop working after an Android update. Files never leave your local network." : {
       "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DroidHarbor usa un protocolo no oficial, obtenido por ingeniería inversa, y puede dejar de funcionar tras una actualización de Android. Los archivos nunca salen de tu red local."
+            "value" : "DroidHarbor usa un protocolo no oficial, obtenido por ingeniería inversa, para interoperar con el sistema de compartir integrado en Android, y puede dejar de funcionar tras una actualización de Android. Los archivos nunca salen de tu red local."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DroidHarbor utilise un protocole non officiel, obtenu par rétro-ingénierie, et peut cesser de fonctionner après une mise à jour d'Android. Les fichiers ne quittent jamais votre réseau local."
+            "value" : "DroidHarbor utilise un protocole non officiel, obtenu par rétro-ingénierie, afin d'interopérer avec le partage intégré à Android, et peut cesser de fonctionner après une mise à jour d'Android. Les fichiers ne quittent jamais votre réseau local."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DroidHarbor usa un protocollo non ufficiale, ricavato tramite reverse engineering, e potrebbe smettere di funzionare dopo un aggiornamento di Android. I file non lasciano mai la rete locale."
+            "value" : "DroidHarbor usa un protocollo non ufficiale, ricavato tramite reverse engineering, per interoperare con la condivisione integrata in Android, e potrebbe smettere di funzionare dopo un aggiornamento di Android. I file non lasciano mai la rete locale."
           }
         }
       }
@@ -2119,25 +2142,25 @@
         }
       }
     },
-    "Implements an unofficial, reverse-engineered protocol; not affiliated with or endorsed by Google or Android." : {
+    "Implements an unofficial, reverse-engineered protocol in order to interoperate with the sharing built into Android; not affiliated with or endorsed by Google or Android." : {
       "extractionState" : "manual",
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Utiliza un protocolo no oficial obtenido por ingeniería inversa; sin relación ni respaldo de Google ni de Android."
+            "value" : "Utiliza un protocolo no oficial obtenido por ingeniería inversa para interoperar con el sistema de compartir integrado en Android; sin relación ni respaldo de Google ni de Android."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Utilise un protocole non officiel obtenu par rétro-ingénierie ; sans affiliation ni approbation de Google ou d'Android."
+            "value" : "Utilise un protocole non officiel obtenu par rétro-ingénierie afin d'interopérer avec le partage intégré à Android ; sans affiliation ni approbation de Google ou d'Android."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Utilizza un protocollo non ufficiale ottenuto tramite reverse engineering; non affiliato né approvato da Google o Android."
+            "value" : "Utilizza un protocollo non ufficiale ottenuto tramite reverse engineering per interoperare con la condivisione integrata in Android; non affiliato né approvato da Google o Android."
           }
         }
       }
