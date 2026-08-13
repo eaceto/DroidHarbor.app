@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=DroidHarbor
+GenericName=File Transfer
+Comment=Transfer files from and to Android's built-in sharing
+Exec=droidharbor
+Icon=dev.eaceto.apps.linux.droidharbor
+Terminal=false
+Categories=Network;FileTransfer;GTK;
+Keywords=android;quick share;nearby;transfer;phone;
+StartupNotify=true
+StartupWMClass=dev.eaceto.apps.linux.droidharbor

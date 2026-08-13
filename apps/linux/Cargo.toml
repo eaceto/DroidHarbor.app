@@ -1,0 +1,56 @@
+# Deliberately NOT a member of the root workspace: GTK is not a build dependency
+# of anything else, so `cargo test --workspace` must not have to find it. The
+# root Cargo.toml excludes this path; path dependencies still reach the shared
+# crates, and only the lockfile is separate.
+[package]
+name = "droidharbor-linux"
+description = "DroidHarbor GTK4 app for Linux"
+version = "0.2.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/eaceto/DroidHarbor.app"
+
+[[bin]]
+name = "droidharbor"
+path = "src/main.rs"
+
+[dependencies]
+# The shared layers, linked directly — no FFI on Linux. These live in the root
+# workspace and inherit their own dependency versions from it.
+dh-core = { path = "../../crates/dh-core" }
+dh-domain = { path = "../../crates/dh-domain" }
+dh-qs-core = { path = "../../crates/dh-qs-core" }
+
+# Version features pinned to Ubuntu 24.04's libraries, matching Dockerfile.
+# This makes calling a newer GTK/libadwaita API a compile error at build time
+# rather than a link failure at packaging time.
+gtk4 = { version = "0.11", features = ["v4_14"] }
+libadwaita = { version = "0.9", features = ["v1_5"] }
+# relm4 0.11 requires gtk4 ^0.11.2 and libadwaita ^0.9.1 with no version
+# features of their own, so the pins above win when cargo unions the graph.
+# The `libadwaita` feature is what lets relm4 host Adw widgets.
+relm4 = { version = "0.11", features = ["libadwaita"] }
+
+anyhow = "1"
+# All four already arrive transitively through rqs_lib, so naming them here
+# costs no extra compilation.
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Blocking, rustls-only HTTP for the update manifest. Chosen over reqwest for
+# the dependency weight: this fetches one small JSON file, once, on demand.
+ureq = { version = "3", default-features = false, features = ["rustls", "json"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# D-Bus and XDG have no macOS counterpart, so the whole desktop-integration set
+# is Linux-only and lives behind src/platform/.
+[target.'cfg(target_os = "linux")'.dependencies]
+# Portals are feature-gated one by one; the default feature set is just the
+# tokio runtime, so file_chooser has to be asked for explicitly.
+ashpd = { version = "0.13", features = ["file_chooser", "background"] }
+ksni = "0.3"          # StatusNotifierItem tray (absent on vanilla GNOME)
+notify-rust = "4.18"  # org.freedesktop.Notifications, with actions
+zbus = "5"            # org.freedesktop.FileManager1 reveal

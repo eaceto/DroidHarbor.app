@@ -9,6 +9,11 @@ members = [
     "integration-tests",
 ]
 
+# Linux-only (GTK4/libadwaita), so it cannot build on the macOS hosts that run
+# `cargo test --workspace`. It has its own lockfile and is built in the
+# ubuntu:24.04 container described in apps/linux/Dockerfile.
+exclude = ["apps/linux"]
+
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
