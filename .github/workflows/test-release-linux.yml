@@ -1,0 +1,163 @@
+name: Test release (Linux)
+
+# Manual, draft-only builds for testing the release path end to end.
+#
+# Temporary: delete this file once the real release workflow is trusted. It
+# publishes to a DRAFT release, so nothing is ever visible to the public, and
+# the tag it names is created by GitHub only if the draft is published.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version, e.g. 0.2.0-test1"
+        required: true
+        type: string
+      arch:
+        description: "Architecture to build"
+        required: true
+        default: both
+        type: choice
+        options: [both, x86_64, aarch64]
+
+permissions:
+  contents: write
+
+jobs:
+  # A dispatch input cannot drive a matrix directly, so it is turned into one
+  # here and consumed below.
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.pick.outputs.matrix }}
+    steps:
+      - id: pick
+        env:
+          ARCH: ${{ inputs.arch }}
+        run: |
+          case "$ARCH" in
+            x86_64)  matrix='[{"arch":"x86_64","runner":"ubuntu-latest"}]' ;;
+            aarch64) matrix='[{"arch":"aarch64","runner":"ubuntu-24.04-arm"}]' ;;
+            *)       matrix='[{"arch":"x86_64","runner":"ubuntu-latest"},{"arch":"aarch64","runner":"ubuntu-24.04-arm"}]' ;;
+          esac
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  appimage:
+    name: AppImage (${{ matrix.arch }})
+    needs: plan
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.plan.outputs.matrix) }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the build image
+        run: docker build -t droidharbor-build:24.04 apps/linux
+
+      # The same script used locally, so CI cannot drift from what a developer
+      # machine produces.
+      - name: Build the AppImage
+        env:
+          DH_VERSION: ${{ inputs.version }}
+        run: |
+          docker run --rm \
+            -v "$PWD":/src \
+            -e CARGO_TARGET_DIR=/target \
+            -e DH_VERSION \
+            -e DH_OUT=/src/apps/linux/build/release \
+            -w /src/apps/linux \
+            droidharbor-build:24.04 ./Packaging/build-appimage.sh
+
+
+      # The container builds as root, so everything it wrote is root-owned and
+      # the steps below — which run as `runner` — cannot even create a scratch
+      # directory beside it. Docker Desktop on macOS maps ownership to the
+      # invoking user, which is why this only bites on Linux CI.
+      - name: Take ownership of the build output
+        run: sudo chown -R "$(id -u):$(id -g)" apps/linux/build
+
+      # A bundle missing its runtime furniture still builds and exits zero; it
+      # only fails when a user runs it. Each of these has been a real bug.
+      - name: Verify the bundle
+        run: |
+          image=$(ls "$PWD"/apps/linux/build/release/DroidHarbor-*.AppImage)
+          # Extracted into the runner's temp directory, never beside the
+          # artifact: the output directory is not ours to write into.
+          cd "$RUNNER_TEMP"
+          "$image" --appimage-extract >/dev/null
+          fail=0
+          for path in \
+            usr/share/glib-2.0/schemas/gschemas.compiled \
+            usr/share/icons/Adwaita \
+            usr/lib/gdk-pixbuf-2.0; do
+            [ -e "squashfs-root/$path" ] || { echo "::error::missing from the bundle: $path"; fail=1; }
+          done
+          ls squashfs-root/usr/lib/gdk-pixbuf-2.0/*/loaders/ | grep -q svg \
+            || { echo "::error::no SVG pixbuf loader: SVG-only icons would render broken"; fail=1; }
+          rm -rf squashfs-root
+          exit $fail
+
+      - name: Checksums
+        working-directory: apps/linux/build/release
+        run: sha256sum DroidHarbor-*.AppImage | tee "SHA256SUMS-${{ matrix.arch }}.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}
+          path: apps/linux/build/release/*
+          if-no-files-found: error
+
+  draft:
+    name: Draft release
+    needs: [plan, appimage]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: incoming
+
+      # Written here rather than per-architecture, because the manifest has to
+      # describe every build in the release at once.
+      - name: Assemble the update manifest
+        env:
+          VERSION: ${{ inputs.version }}
+          TAG: linux-test-${{ inputs.version }}
+        run: |
+          mkdir -p out
+          find incoming -name '*.AppImage' -exec cp {} out/ \;
+          find incoming -name 'SHA256SUMS-*.txt' -exec cp {} out/ \;
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}"
+          {
+            printf '{\n  "version": "%s",\n  "notes": "Draft test build",\n  "artifacts": {\n' "$VERSION"
+            first=1
+            for file in out/*.AppImage; do
+              name="$(basename "$file")"
+              arch="${name##*-}"; arch="${arch%.AppImage}"
+              sum="$(sha256sum "$file" | cut -d' ' -f1)"
+              [ $first -eq 1 ] || printf ',\n'
+              first=0
+              printf '    "%s": { "url": "%s/%s", "sha256": "%s" }' "$arch" "$base" "$name" "$sum"
+            done
+            printf '\n  }\n}\n'
+          } > out/updates-linux.json
+          cat out/updates-linux.json
+
+      - name: Publish the draft
+        uses: softprops/action-gh-release@v2
+        with:
+          # Its own tag and name, so deleting the Linux test artifacts never
+          # touches the macOS ones.
+          tag_name: linux-test-${{ inputs.version }}
+          name: "Linux test ${{ inputs.version }}"
+          body: |
+            Draft build for testing the Linux release path. Not for distribution.
+
+            The manifest URLs point at this draft's tag, so the in-app update
+            check only resolves them once the draft is published.
+          draft: true
+          prerelease: true
+          files: out/*
+          fail_on_unmatched_files: true

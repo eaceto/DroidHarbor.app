@@ -1,0 +1,141 @@
+name: Test release (macOS)
+
+# Manual, draft-only builds for testing the release path end to end.
+#
+# Temporary: delete this file once the real release workflow is trusted.
+#
+# The DMG is **unsigned and not notarized**, because CI holds no Developer ID.
+# It proves the build, the packaging and the publishing path; it is not the
+# artifact users receive. Gatekeeper will refuse it on another Mac unless the
+# app is opened once through the right-click menu.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version, e.g. 0.2.0-test1"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  dmg:
+    name: Unsigned DMG
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install protoc (rqs_lib build dependency)
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Tuist
+        run: brew install --quiet tuist
+
+      - name: Build the Rust core and bindings
+        working-directory: apps/macos
+        run: ./build-rust.sh
+
+      # Tuist reads the version through TUIST_-prefixed environment, the same
+      # way release.sh sets it. The build number must always increase, so it is
+      # derived from the version with any suffix ignored.
+      - name: Generate the Xcode project
+        working-directory: apps/macos
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          numeric="$(printf '%s' "$VERSION" | tr -cd '0-9.')"
+          build="$(printf '%s' "$numeric" | awk -F. '{ printf "%d", $1 * 10000 + $2 * 100 + $3 }')"
+          echo "version=$VERSION build=$build"
+          {
+            echo "TUIST_DH_CHANNEL=release"
+            echo "TUIST_DH_VERSION=$VERSION"
+            echo "TUIST_DH_BUILD=$build"
+          } >> "$GITHUB_ENV"
+          TUIST_DH_CHANNEL=release TUIST_DH_VERSION="$VERSION" TUIST_DH_BUILD="$build" \
+            tuist generate --no-open
+
+      - name: Archive (universal)
+        working-directory: apps/macos
+        run: |
+          xcodebuild archive \
+            -workspace DroidHarbor.xcworkspace \
+            -scheme DroidHarbor \
+            -configuration Release \
+            -archivePath build/DroidHarbor.xcarchive \
+            -destination "generic/platform=macOS" \
+            ARCHS="arm64 x86_64" ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            | grep -E "^(\*\*|error:)" || true
+          test -d build/DroidHarbor.xcarchive || { echo "::error::archive failed"; exit 1; }
+
+      # Taken straight from the archive: -exportArchive wants a signing
+      # configuration, and there is none to give it.
+      - name: Package the DMG
+        working-directory: apps/macos
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          app="build/DroidHarbor.xcarchive/Products/Applications/DroidHarbor.app"
+          test -d "$app" || { echo "::error::no app in the archive"; exit 1; }
+
+          # Confirm both slices are present; a silently single-architecture
+          # build would still package and still run on this machine.
+          lipo -archs "$app/Contents/MacOS/DroidHarbor" | tee /tmp/archs
+          grep -q arm64 /tmp/archs && grep -q x86_64 /tmp/archs \
+            || { echo "::error::the app is not universal"; exit 1; }
+
+          mkdir -p build/release build/dmg-stage
+          cp -R "$app" build/dmg-stage/
+          ln -s /Applications build/dmg-stage/Applications
+          hdiutil create \
+            -volname "DroidHarbor" \
+            -srcfolder build/dmg-stage \
+            -ov -format UDZO \
+            "build/release/DroidHarbor-$VERSION.dmg"
+
+      - name: Checksums and update manifest
+        working-directory: apps/macos/build/release
+        env:
+          VERSION: ${{ inputs.version }}
+          TAG: macos-test-${{ inputs.version }}
+        run: |
+          shasum -a 256 "DroidHarbor-$VERSION.dmg" | tee SHA256SUMS
+          # Same shape apps/macos/release.sh writes, so the in-app check on
+          # macOS can be exercised against this draft.
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}"
+          cat > updates.json <<MANIFEST
+          {
+            "version": "$VERSION",
+            "url": "$base/DroidHarbor-$VERSION.dmg",
+            "notes": "Draft test build (unsigned)"
+          }
+          MANIFEST
+          cat updates.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: apps/macos/build/release/*
+          if-no-files-found: error
+
+      - name: Publish the draft
+        uses: softprops/action-gh-release@v2
+        with:
+          # Its own tag and name, so deleting the macOS test artifacts never
+          # touches the Linux ones.
+          tag_name: macos-test-${{ inputs.version }}
+          name: "macOS test ${{ inputs.version }}"
+          body: |
+            Draft build for testing the macOS release path. Not for distribution.
+
+            **Unsigned and not notarized** — CI holds no Developer ID. macOS will
+            refuse to open it normally; right-click → Open, once, to try it.
+          draft: true
+          prerelease: true
+          files: apps/macos/build/release/*
+          fail_on_unmatched_files: true
