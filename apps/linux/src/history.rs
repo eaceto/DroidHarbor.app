@@ -220,6 +220,22 @@ impl Entry {
         !self.paths.is_empty()
     }
 
+    /// True for a received file whose saved copy is no longer at its recorded
+    /// path. Only files can go missing — a link or text is always "there",
+    /// and a sent file was never this app's to track. Relative paths, written
+    /// by builds that recorded bare names, resolve against the current
+    /// destination, the same way Reveal resolves them. Touches the
+    /// filesystem, so callers are the prune pass and rows, not hot loops.
+    pub fn is_missing_from_disk(&self, destination: &Path) -> bool {
+        if self.direction != Direction::Received || !self.is_file() {
+            return false;
+        }
+        let Some(first) = self.paths.first() else {
+            return true;
+        };
+        !resolve_path(first, destination).exists()
+    }
+
     /// Free-text match over what someone would actually type: part of a name,
     /// an extension, a domain, or who sent it.
     pub fn matches(&self, query: &str) -> bool {
@@ -268,6 +284,18 @@ impl Entry {
             Kind::Email => "mail-unread-symbolic",
             Kind::Map => "mark-location-symbolic",
         }
+    }
+}
+
+/// A stored path as something the filesystem can be asked about: absolute
+/// entries pass through, bare names left by older builds are taken to live in
+/// the destination folder.
+pub fn resolve_path(stored: &str, destination: &Path) -> PathBuf {
+    let path = Path::new(stored);
+    if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        destination.join(path)
     }
 }
 
@@ -388,6 +416,44 @@ mod tests {
             "https://example.com/page".into(),
         );
         assert!(link.matches("example.com"));
+    }
+
+    #[test]
+    fn missing_detection_covers_the_cases_that_matter() {
+        let destination = std::env::temp_dir();
+        let name = format!("droidharbor-test-{}.bin", uuid::Uuid::new_v4());
+        let on_disk = destination.join(&name);
+        std::fs::write(&on_disk, b"x").unwrap();
+
+        // Present, by absolute path and by legacy bare name.
+        let absolute = Entry::new(
+            Direction::Received,
+            "Pixel 8".into(),
+            vec![on_disk.display().to_string()],
+        );
+        assert!(!absolute.is_missing_from_disk(&destination));
+        let legacy = Entry::new(Direction::Received, "Pixel 8".into(), vec![name]);
+        assert!(!legacy.is_missing_from_disk(&destination));
+
+        // Gone once the file is deleted.
+        std::fs::remove_file(&on_disk).unwrap();
+        assert!(absolute.is_missing_from_disk(&destination));
+        assert!(legacy.is_missing_from_disk(&destination));
+
+        // Never "missing": sent files, links, and text.
+        let sent = Entry::new(
+            Direction::Sent,
+            "Pixel 8".into(),
+            vec!["/nowhere/gone.bin".into()],
+        );
+        assert!(!sent.is_missing_from_disk(&destination));
+        let link = Entry::text(
+            Direction::Received,
+            "Pixel 8".into(),
+            Kind::Link,
+            "https://example.com".into(),
+        );
+        assert!(!link.is_missing_from_disk(&destination));
     }
 
     #[test]
