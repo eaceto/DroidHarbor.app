@@ -161,6 +161,10 @@ impl Engine {
 
     async fn handle_command(&mut self, cmd: Command) {
         match cmd {
+            // Every SetReceiving is acknowledged, even when it asks for the
+            // state we are already in. The acknowledgement is what the UI
+            // tracks its own switch by, so a silent no-op here would leave a
+            // diverged UI stuck forever with no way back.
             Command::SetReceiving(true) => {
                 if !self.receiving {
                     self.receiving = true;
@@ -168,16 +172,16 @@ impl Engine {
                         device_name: self.config.settings.device_name.clone(),
                     })
                     .await;
-                    self.emit(Event::AdvertisingChanged(true));
                 }
+                self.emit(Event::AdvertisingChanged(true));
                 self.rearm_idle_timer();
             }
             Command::SetReceiving(false) => {
                 if self.receiving {
                     self.receiving = false;
                     self.control(FrontDoorControl::StopAdvertising).await;
-                    self.emit(Event::AdvertisingChanged(false));
                 }
+                self.emit(Event::AdvertisingChanged(false));
                 self.idle_deadline = None;
             }
             Command::SetDeviceName(name) => {
@@ -229,15 +233,15 @@ impl Engine {
                 if !self.discovering {
                     self.discovering = true;
                     self.control(FrontDoorControl::StartDiscovery).await;
-                    self.emit(Event::DiscoveringChanged(true));
                 }
+                self.emit(Event::DiscoveringChanged(true));
             }
             Command::SetDiscovering(false) => {
                 if self.discovering {
                     self.discovering = false;
                     self.control(FrontDoorControl::StopDiscovery).await;
-                    self.emit(Event::DiscoveringChanged(false));
                 }
+                self.emit(Event::DiscoveringChanged(false));
             }
             Command::SendFiles { endpoint, files } => {
                 if files.is_empty() {
@@ -661,5 +665,64 @@ mod tests {
             matches!(event, Event::ErrorOccurred { code, .. } if code == ErrorCode::Busy),
             "expected a busy error, got {event:?}"
         );
+    }
+
+    /// An event that never arrives is the failure these tests look for, so
+    /// waiting forever would report it as a hang rather than a failure.
+    async fn next_event(events: &mut broadcast::Receiver<Event>) -> Event {
+        tokio::time::timeout(Duration::from_secs(5), events.recv())
+            .await
+            .expect("expected an event, none arrived")
+            .unwrap()
+    }
+
+    #[tokio::test]
+    async fn a_redundant_set_receiving_is_still_acknowledged() {
+        let (handle, mut control_rx, _signal_tx) = spawn_engine();
+        let mut events = handle.subscribe();
+
+        // Already off at startup, so this asks for the state we are in. The
+        // UI tracks its switch by the acknowledgement alone: staying silent
+        // here is what used to leave a diverged switch stuck for good.
+        handle.send(Command::SetReceiving(false)).await.unwrap();
+
+        let event = next_event(&mut events).await;
+        assert!(
+            matches!(event, Event::AdvertisingChanged(false)),
+            "expected an off acknowledgement, got {event:?}"
+        );
+        assert!(
+            control_rx.try_recv().is_err(),
+            "a redundant command should not reach the front door"
+        );
+    }
+
+    #[tokio::test]
+    async fn the_last_of_a_rapid_toggle_run_wins() {
+        let (handle, mut control_rx, _signal_tx) = spawn_engine();
+        let mut events = handle.subscribe();
+
+        // The UI dispatches every click without waiting for the round trip,
+        // so these arrive back to back.
+        handle.send(Command::SetReceiving(true)).await.unwrap();
+        handle.send(Command::SetReceiving(false)).await.unwrap();
+
+        assert!(matches!(
+            control_rx.recv().await.unwrap(),
+            FrontDoorControl::StartAdvertising { .. }
+        ));
+        assert!(matches!(
+            control_rx.recv().await.unwrap(),
+            FrontDoorControl::StopAdvertising
+        ));
+
+        assert!(matches!(
+            next_event(&mut events).await,
+            Event::AdvertisingChanged(true)
+        ));
+        assert!(matches!(
+            next_event(&mut events).await,
+            Event::AdvertisingChanged(false)
+        ));
     }
 }

@@ -499,12 +499,13 @@ impl SimpleComponent for App {
         match msg {
             Msg::Refresh => {}
 
-            // Guarded so a switch reacting to its own state change does not
-            // bounce a redundant command back into the domain.
-            Msg::SetReceiving(on) if on == self.receiving => {}
+            // Dispatched unconditionally: `self.receiving` lags the domain by
+            // a round trip, so comparing against it here would swallow the
+            // second half of a fast off-on-off. The domain acknowledges every
+            // command, and a switch reacting to its own state change is
+            // absorbed by the domain's own is-it-already-so check.
             Msg::SetReceiving(on) => self.dispatch(Command::SetReceiving(on)),
 
-            Msg::SetDiscovering(on) if on == self.discovering => {}
             Msg::SetDiscovering(on) => self.dispatch(Command::SetDiscovering(on)),
 
             Msg::Consent { session, decision } => {
@@ -835,9 +836,12 @@ impl App {
     fn on_domain_event(&mut self, event: Event, sender: &ComponentSender<Self>) {
         match event {
             Event::AdvertisingChanged(on) => {
+                // Every command is acknowledged, so this fires for redundant
+                // ones too; only a real transition is worth a toast.
+                let changed = self.receiving != on;
                 self.receiving = on;
                 self.sync_tray();
-                if !on {
+                if changed && !on {
                     self.notice("Receiving is off.");
                 }
             }
