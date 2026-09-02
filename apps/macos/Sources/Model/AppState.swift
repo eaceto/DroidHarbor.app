@@ -451,6 +451,26 @@ final class AppState: ObservableObject {
         HistoryStore.save(history, to: defaults)
     }
 
+    /// Forget a batch at once — the "Clear Shown" path, where what is shown
+    /// is whatever the filter and search currently match.
+    func removeFromHistory(_ entries: [HistoryEntry]) {
+        let ids = Set(entries.map(\.id))
+        guard !ids.isEmpty else { return }
+        history.removeAll { ids.contains($0.id) }
+        HistoryStore.save(history, to: defaults)
+    }
+
+    /// Drop received-file entries whose files have since been moved or
+    /// deleted: a row whose every action would fail is not worth keeping.
+    /// Called at launch, on activation and when the Transfers pane appears —
+    /// the moments the list is about to be looked at.
+    func pruneMissingHistory() {
+        let pruned = history.filter { !$0.isMissingFromDisk }
+        guard pruned.count != history.count else { return }
+        history = pruned
+        HistoryStore.save(history, to: defaults)
+    }
+
     // MARK: - Sending
 
     /// Pick files, then discover nearby devices to send them to.
