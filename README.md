@@ -8,12 +8,12 @@ On the phone: **Share → Quick Share → tap your computer**. Full guide at
 accept dialog with a matching 4-digit code, then the files land in a folder
 you chose.
 
-> **Current release: 0.11.8.** Both directions work on real hardware (verified
+> **Current release: 1.0.0.** Both directions work on real hardware (verified
 > with a Pixel 8): receiving from Android's share sheet, and sending back to
 > it: files, and text such as links, addresses and phone numbers. The
 > macOS app ([`apps/macos`](apps/macos)) ships as a signed, notarized
-> universal DMG. Being pre-1.0, interfaces and storage formats may still
-> change between releases.
+> universal DMG; the Linux app ([`apps/linux`](apps/linux)) ships as an
+> AppImage for x86_64 and aarch64.
 
 > **No warranty.** DroidHarbor is provided as is, without warranty of any kind
 > (GPL sections 15–16). It moves your files over a protocol that can change
@@ -56,10 +56,11 @@ tree for macOS and Linux; UIs are fully native per platform.
 | `crates/dh-core` | Filesystem safety: sanitization, limits, atomic finalization (implemented + tested) |
 | `crates/dh-qs-core` | Quick Share front door: adapts the rev-pinned GPL `rqs_lib` from [our fork](https://github.com/eaceto/rquickshare) (protocol, crypto, mDNS) to the domain seam |
 | `crates/dh-domain` | Session orchestration; the command/event API (implemented + tested) |
-| `crates/dh-ffi` | UniFFI surface for Swift (M1) |
+| `crates/dh-ffi` | UniFFI surface for Swift |
 | `integration-tests` | Headless tests driving `dh-domain` exactly as a UI would |
-| `apps/macos` | DroidHarbor: SwiftUI menu-bar app (M1) |
-| `apps/linux` | GTK4 app (future development) |
+| `apps/cli` | Headless CLI for exercising the protocol without an app |
+| `apps/macos` | DroidHarbor for macOS: SwiftUI menu-bar app + window |
+| `apps/linux` | DroidHarbor for Linux: Rust + GTK4/libadwaita, packaged as an AppImage |
 
 Building requires `protoc` (`brew install protobuf` / `apt install
 protobuf-compiler`) for `rqs_lib`'s vendored protocol definitions.
@@ -67,11 +68,14 @@ protobuf-compiler`) for `rqs_lib`'s vendored protocol definitions.
 ## Building
 
 ```sh
-cargo test --workspace     # data + domain layers, all platforms
+cargo test --workspace           # data + domain layers and the CLI
 cargo clippy --workspace --all-targets -- -D warnings
+(cd apps/linux && cargo test)    # the GTK app keeps its own workspace
 ```
 
-Requires stable Rust. The macOS app (M1) will additionally require Xcode.
+Requires stable Rust. The macOS app additionally requires Xcode and Tuist
+(see [`apps/macos/README.md`](apps/macos/README.md)); the Linux app requires
+GTK4 and libadwaita (see [`apps/linux/README.md`](apps/linux/README.md)).
 
 ## Roadmap
 
@@ -82,11 +86,14 @@ Requires stable Rust. The macOS app (M1) will additionally require Xcode.
   dialog with token, notifications, Reveal in Finder.
 - **M2 (hardened + packaged)**: limits/timeouts everywhere, loopback CI
   sender, fuzzing, firewall hints, signed + notarized DMG.
-- **0.11.8 (current)**: both directions verified on real hardware; signed and
-  notarized DMG; English, Spanish, Italian and French.
-- **Next**: a CI app build, folder sending, richer diagnostics.
-- **Later**: Linux UI, daemon split (Finder/Share extensions), QR+HTTP
-  browser fallback front door.
+- **1.0.0 (current)**: both apps ship from one tag — macOS as a signed,
+  notarized universal DMG (English, Spanish, Italian, French), Linux as
+  x86_64 and aarch64 AppImages built by CI — with in-app update checks on
+  both platforms.
+- **Next**: folder sending, richer transfer diagnostics, CI coverage for the
+  Linux app crate, Linux localization.
+- **Later**: daemon split (Finder/Share extensions), QR+HTTP browser
+  fallback front door.
 
 ## License
 

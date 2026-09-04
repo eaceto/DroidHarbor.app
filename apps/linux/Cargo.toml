@@ -5,7 +5,7 @@
 [package]
 name = "droidharbor-linux"
 description = "DroidHarbor GTK4 app for Linux"
-version = "0.2.0"
+version = "1.0.0"
 edition = "2021"
 license = "GPL-3.0-or-later"
 repository = "https://github.com/eaceto/DroidHarbor.app"
