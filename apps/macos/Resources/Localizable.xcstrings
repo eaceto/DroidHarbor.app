@@ -1,29 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Android and Quick Share are trademarks of Google LLC." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Android y Quick Share son marcas comerciales de Google LLC."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Android et Quick Share sont des marques de Google LLC."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Android e Quick Share sono marchi di Google LLC."
-          }
-        }
-      }
-    },
     "·" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -921,6 +898,29 @@
         }
       }
     },
+    "Android and Quick Share are trademarks of Google LLC." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android y Quick Share son marcas comerciales de Google LLC."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android et Quick Share sont des marques de Google LLC."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Android e Quick Share sono marchi di Google LLC."
+          }
+        }
+      }
+    },
     "Android device" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1195,6 +1195,94 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cancella"
+          }
+        }
+      }
+    },
+    "Clear All" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Borrar todo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout effacer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancella tutto"
+          }
+        }
+      }
+    },
+    "Clear History" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Borrar historial"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Effacer l’historique"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancella cronologia"
+          }
+        }
+      }
+    },
+    "Clear history?" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Borrar el historial?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Effacer l’historique ?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancellare la cronologia?"
+          }
+        }
+      }
+    },
+    "Clear Shown (%lld)" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Borrar mostrados (%lld)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Effacer les éléments affichés (%lld)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancella elementi mostrati (%lld)"
           }
         }
       }
@@ -1912,6 +2000,28 @@
         }
       }
     },
+    "File moved or deleted" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archivo movido o eliminado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fichier déplacé ou supprimé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File spostato o eliminato"
+          }
+        }
+      }
+    },
     "Files received" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1954,6 +2064,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "File inviati"
+          }
+        }
+      }
+    },
+    "Files stay where they were saved. Only the record of past transfers is cleared." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los archivos permanecen donde se guardaron. Solo se borra el registro de transferencias pasadas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les fichiers restent là où ils ont été enregistrés. Seul l’historique des transferts passés est effacé."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I file restano dove sono stati salvati. Viene cancellato solo il registro dei trasferimenti passati."
+          }
+        }
+      }
+    },
+    "Finish the current transfer before changing where files are saved." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termina la transferencia actual antes de cambiar dónde se guardan los archivos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminez le transfert en cours avant de changer l’emplacement d’enregistrement des fichiers."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completa il trasferimento in corso prima di cambiare dove vengono salvati i file."
+          }
+        }
+      }
+    },
+    "Finish the current transfer before renaming this Mac." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termina la transferencia actual antes de renombrar este Mac."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminez le transfert en cours avant de renommer ce Mac."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completa il trasferimento in corso prima di rinominare questo Mac."
           }
         }
       }
@@ -2395,6 +2571,30 @@
         }
       }
     },
+    "More options" : {
+      "comment" : "A label for a button that opens a menu.",
+      "isCommentAutoGenerated" : true,
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Más opciones"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plus d’options"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Altre opzioni"
+          }
+        }
+      }
+    },
     "must match the code shown on the phone" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2625,6 +2825,28 @@
         }
       }
     },
+    "Off · will appear as “%@”" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apagado · aparecerá como «%@»"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactivé · apparaîtra comme « %@ »"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spento · apparirà come “%@”"
+          }
+        }
+      }
+    },
     "On the phone, open **Quick Share** (Settings → Connected devices, or the Files app) so it becomes visible." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2759,6 +2981,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apri"
+          }
+        }
+      }
+    },
+    "Open app" : {
+      "comment" : "Label for the \"Open app\" action in the menu.",
+      "isCommentAutoGenerated" : true,
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir la app"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir l’app"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri l’app"
           }
         }
       }
@@ -3338,6 +3584,28 @@
         }
       }
     },
+    "Release to send" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suelta para enviar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relâchez pour envoyer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rilascia per inviare"
+          }
+        }
+      }
+    },
     "Release to send %lld files" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3637,6 +3905,30 @@
         }
       }
     },
+    "Send clipboard" : {
+      "comment" : "Label for the action to send the clipboard contents.",
+      "isCommentAutoGenerated" : true,
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar portapapeles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoyer le presse-papiers"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invia appunti"
+          }
+        }
+      }
+    },
     "Send clipboard text" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3679,6 +3971,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Invia testo dagli appunti"
+          }
+        }
+      }
+    },
+    "Send files" : {
+      "comment" : "Label for the \"Send files\" action in the menu.",
+      "isCommentAutoGenerated" : true,
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar archivos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoyer des fichiers"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invia file"
           }
         }
       }
@@ -4461,6 +4777,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gli appunti non contengono testo da inviare."
+          }
+        }
+      }
+    },
+    "The code must match the one on the phone." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El código debe coincidir con el que muestra el teléfono."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le code doit correspondre à celui affiché sur le téléphone."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il codice deve corrispondere a quello mostrato sul telefono."
           }
         }
       }

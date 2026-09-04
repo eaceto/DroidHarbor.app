@@ -1,0 +1,170 @@
+name: Linux release
+
+# AppImages for both architectures, built in the same ubuntu:24.04 container the
+# developer machine uses, so the glibc floor and the bundled GTK are identical
+# to what was tested locally rather than whatever the runner happens to have.
+on:
+  push:
+    tags: ["v*"]
+  # Buildable on demand, because a packaging change is worth proving before it
+  # is attached to a tag.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  appimage:
+    name: AppImage (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-latest
+          # GitHub's free arm64 Linux runners are limited; if this job cannot be
+          # scheduled, drop it and cut aarch64 releases from a developer machine
+          # instead — the same script produces the same artefact either way.
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The container carries every build and packaging dependency, including
+      # the icon themes and the gdk-pixbuf SVG loader that GTK needs at runtime.
+      # Omitting either produces an AppImage that starts and renders nothing.
+      - name: Build the image
+        run: docker build -t droidharbor-build:24.04 apps/linux
+
+      - name: Derive the version from the tag
+        id: version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          # workflow_dispatch has no tag to read.
+          [ "$version" = "$GITHUB_REF_NAME" ] && version="0.0.0-$(git rev-parse --short HEAD)"
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Set the crate version
+        # The binary reports CARGO_PKG_VERSION in About and compares it
+        # against the update manifest. Left at the checked-in value, every CI
+        # AppImage would identify as that version regardless of tag and offer
+        # itself as an update forever. Same awk as apps/linux/release.sh.
+        env:
+          DH_VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          cd apps/linux
+          awk -v v="$DH_VERSION" '
+              /^version = / && !done { print "version = \"" v "\""; done = 1; next }
+              { print }
+          ' Cargo.toml > Cargo.toml.new && mv Cargo.toml.new Cargo.toml
+          grep -q "version = \"$DH_VERSION\"" Cargo.toml
+
+      - name: Build the AppImage
+        # The version reaches the shell through the environment rather than by
+        # interpolation, so a tag name can never be read as shell syntax.
+        env:
+          DH_VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          docker run --rm \
+            -v "$PWD":/src \
+            -e CARGO_TARGET_DIR=/target \
+            -e DH_VERSION \
+            -w /src/apps/linux \
+            droidharbor-build:24.04 ./Packaging/build-appimage.sh
+
+      - name: Reclaim the build directory
+        # The container runs as root, so without this the verify and checksum
+        # steps below cannot write beside the AppImage. (The draft workflow
+        # learned this first; the fix belongs here too.)
+        run: sudo chown -R "$(id -u):$(id -g)" apps/linux/build
+
+      # A bundle that is missing its runtime furniture still builds and still
+      # exits zero; it only fails when a user runs it. Check the pieces here.
+      - name: Verify the bundle carries what GTK needs
+        run: |
+          cd apps/linux/build
+          image=$(ls DroidHarbor-*.AppImage)
+          ./"$image" --appimage-extract >/dev/null
+          fail=0
+          for path in \
+            "usr/share/glib-2.0/schemas/gschemas.compiled" \
+            "usr/share/icons/Adwaita" \
+            "usr/lib/gdk-pixbuf-2.0"; do
+            if [ ! -e "squashfs-root/$path" ]; then
+              echo "::error::missing from the bundle: $path"
+              fail=1
+            fi
+          done
+          if ! ls squashfs-root/usr/lib/gdk-pixbuf-2.0/*/loaders/ | grep -q svg; then
+            echo "::error::no SVG pixbuf loader: every SVG-only icon will render as a broken image"
+            fail=1
+          fi
+          rm -rf squashfs-root
+          exit $fail
+
+      - name: Checksum
+        run: |
+          cd apps/linux/build
+          sha256sum DroidHarbor-*.AppImage | tee SHA256SUMS-${{ matrix.arch }}.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: droidharbor-${{ matrix.arch }}
+          path: |
+            apps/linux/build/DroidHarbor-*.AppImage
+            apps/linux/build/SHA256SUMS-*.txt
+          if-no-files-found: error
+
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            apps/linux/build/DroidHarbor-*.AppImage
+            apps/linux/build/SHA256SUMS-*.txt
+          fail_on_unmatched_files: true
+
+  # The manifest is what the in-app update check reads; a release without it
+  # exists but is never announced to anyone. Assembled after both architecture
+  # legs so it describes every AppImage the release actually carries.
+  manifest:
+    name: Update manifest
+    needs: appimage
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: droidharbor-*
+          merge-multiple: true
+          path: dist
+
+      - name: Write updates-linux.json
+        # Same shape as apps/linux/release.sh writes: version, notes, and one
+        # {url, sha256} artifact per architecture key.
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}"
+          {
+            printf '{\n  "version": "%s",\n  "notes": null,\n  "artifacts": {\n' "$version"
+            first=1
+            for file in dist/DroidHarbor-*.AppImage; do
+              name="$(basename "$file")"
+              # DroidHarbor-<version>-<arch>.AppImage
+              arch="${name##*-}"; arch="${arch%.AppImage}"
+              sum="$(sha256sum "$file" | cut -d' ' -f1)"
+              [ $first -eq 1 ] || printf ',\n'
+              first=0
+              printf '    "%s": { "url": "%s/%s", "sha256": "%s" }' "$arch" "$base" "$name" "$sum"
+            done
+            printf '\n  }\n}\n'
+          } > updates-linux.json
+          cat updates-linux.json
+
+      - name: Attach to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: updates-linux.json
+          fail_on_unmatched_files: true

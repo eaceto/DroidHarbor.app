@@ -67,6 +67,9 @@ pub fn spawn(config: DomainConfig, frontdoor: FrontDoorChannels) -> (DomainHandl
         next_outbound: OUTBOUND_SESSION_BASE,
         active: None,
         idle_deadline: None,
+        receive_until: None,
+        stop_after_session: false,
+        outbound_deadline: None,
         event_tx: event_tx.clone(),
         control_tx: frontdoor.control_tx,
     };
@@ -107,6 +110,16 @@ struct Engine {
     /// When advertising should stop by itself; `None` while disabled, mid
     /// transfer, or not receiving.
     idle_deadline: Option<Instant>,
+    /// The fixed `ReceiveTemporarily` window. While set, it owns the clock
+    /// and the idle timer stays disarmed.
+    receive_until: Option<Instant>,
+    /// The window lapsed mid-transfer: finish the session, then stop.
+    stop_after_session: bool,
+    /// How long an outbound session may sit waiting for the peer. Without
+    /// it, a device that vanished after discovery — whose connect failure
+    /// the protocol layer only logs — wedges the single session slot until
+    /// the process restarts.
+    outbound_deadline: Option<Instant>,
     event_tx: broadcast::Sender<Event>,
     control_tx: mpsc::Sender<FrontDoorControl>,
 }
@@ -139,6 +152,44 @@ impl Engine {
                         self.emit(Event::AdvertisingChanged(false));
                     }
                 }
+                _ = tokio::time::sleep_until(
+                    self.receive_until.unwrap_or_else(|| Instant::now() + Duration::from_secs(86_400))
+                ), if self.receive_until.is_some() => {
+                    self.receive_until = None;
+                    self.emit(Event::ReceivingUntilChanged { until_epoch_secs: None });
+                    if self.active.is_some() {
+                        // The clock struck mid-transfer. Killing the session
+                        // for punctuality helps nobody; stop once it ends.
+                        self.stop_after_session = true;
+                    } else if self.receiving {
+                        tracing::info!("temporary receiving window lapsed");
+                        self.receiving = false;
+                        self.control(FrontDoorControl::StopAdvertising).await;
+                        self.emit(Event::AdvertisingChanged(false));
+                    }
+                }
+                _ = tokio::time::sleep_until(
+                    self.outbound_deadline.unwrap_or_else(|| Instant::now() + Duration::from_secs(86_400))
+                ), if self.outbound_deadline.is_some() => {
+                    self.outbound_deadline = None;
+                    // Only an outbound session still waiting for the peer can
+                    // time out here; anything already moving cleared this.
+                    let waiting = self
+                        .active
+                        .as_ref()
+                        .filter(|s| s.phase == Phase::AwaitingPeerAccept)
+                        .map(|s| s.id);
+                    if let Some(session) = waiting {
+                        tracing::info!(%session, "outbound session timed out awaiting the peer");
+                        self.active = None;
+                        self.control(FrontDoorControl::Cancel { session }).await;
+                        self.emit(Event::SessionEnded {
+                            session,
+                            outcome: SessionOutcome::TimedOut,
+                        });
+                        self.rearm_idle_timer();
+                    }
+                }
                 signal = signal_rx.recv() => {
                     match signal {
                         None => {
@@ -161,24 +212,55 @@ impl Engine {
 
     async fn handle_command(&mut self, cmd: Command) {
         match cmd {
+            // Every SetReceiving is acknowledged, even when it asks for the
+            // state we are already in. The acknowledgement is what the UI
+            // tracks its own switch by, so a silent no-op here would leave a
+            // diverged UI stuck forever with no way back.
             Command::SetReceiving(true) => {
+                // A manual switch takes over from any temporary window.
+                self.clear_receive_window();
                 if !self.receiving {
                     self.receiving = true;
                     self.control(FrontDoorControl::StartAdvertising {
                         device_name: self.config.settings.device_name.clone(),
                     })
                     .await;
-                    self.emit(Event::AdvertisingChanged(true));
                 }
+                self.emit(Event::AdvertisingChanged(true));
                 self.rearm_idle_timer();
             }
             Command::SetReceiving(false) => {
+                self.clear_receive_window();
                 if self.receiving {
                     self.receiving = false;
                     self.control(FrontDoorControl::StopAdvertising).await;
-                    self.emit(Event::AdvertisingChanged(false));
                 }
+                self.emit(Event::AdvertisingChanged(false));
                 self.idle_deadline = None;
+            }
+            Command::ReceiveTemporarily { minutes } => {
+                let minutes = minutes.max(1);
+                if !self.receiving {
+                    self.receiving = true;
+                    self.control(FrontDoorControl::StartAdvertising {
+                        device_name: self.config.settings.device_name.clone(),
+                    })
+                    .await;
+                }
+                self.emit(Event::AdvertisingChanged(true));
+                // The window owns the clock: the idle timer stays out of it,
+                // so the two can never disagree about when receiving ends.
+                self.idle_deadline = None;
+                self.stop_after_session = false;
+                self.receive_until = Some(Instant::now() + Duration::from_secs(minutes * 60));
+                let until = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs()
+                    + minutes * 60;
+                self.emit(Event::ReceivingUntilChanged {
+                    until_epoch_secs: Some(until),
+                });
             }
             Command::SetDeviceName(name) => {
                 self.config.settings.device_name = name.clone();
@@ -229,15 +311,15 @@ impl Engine {
                 if !self.discovering {
                     self.discovering = true;
                     self.control(FrontDoorControl::StartDiscovery).await;
-                    self.emit(Event::DiscoveringChanged(true));
                 }
+                self.emit(Event::DiscoveringChanged(true));
             }
             Command::SetDiscovering(false) => {
                 if self.discovering {
                     self.discovering = false;
                     self.control(FrontDoorControl::StopDiscovery).await;
-                    self.emit(Event::DiscoveringChanged(false));
                 }
+                self.emit(Event::DiscoveringChanged(false));
             }
             Command::SendFiles { endpoint, files } => {
                 if files.is_empty() {
@@ -296,7 +378,26 @@ impl Engine {
             token: String::new(),
             total_bytes: 0,
         });
+        // The slot is claimed on a promise the peer may never keep; the
+        // deadline is what gives it back (re-armed once the phone is
+        // actually being asked, so connect time does not eat consent time).
+        self.arm_outbound_deadline();
         Some(session)
+    }
+
+    fn arm_outbound_deadline(&mut self) {
+        let seconds = self.config.limits.accept_timeout_secs.max(1);
+        self.outbound_deadline = Some(Instant::now() + Duration::from_secs(seconds));
+    }
+
+    /// Retire the temporary window, telling the UIs their countdowns are over.
+    fn clear_receive_window(&mut self) {
+        if self.receive_until.take().is_some() || self.stop_after_session {
+            self.stop_after_session = false;
+            self.emit(Event::ReceivingUntilChanged {
+                until_epoch_secs: None,
+            });
+        }
     }
 
     async fn handle_signal(&mut self, signal: FrontDoorSignal) {
@@ -381,6 +482,7 @@ impl Engine {
                     // First outbound progress means the phone accepted.
                     if active.phase == Phase::AwaitingPeerAccept {
                         active.advance(Phase::Sending);
+                        self.outbound_deadline = None;
                     }
                     let total_bytes = active.total_bytes;
                     self.emit(Event::Progress {
@@ -434,12 +536,24 @@ impl Engine {
             FrontDoorSignal::Ended { session, reason } => {
                 if self.active.as_ref().is_some_and(|s| s.id == session) {
                     self.active = None;
+                    self.outbound_deadline = None;
                     self.emit(Event::SessionEnded {
                         session,
                         outcome: (&reason).into(),
                     });
-                    // The clock starts again once nothing is in flight.
-                    self.rearm_idle_timer();
+                    if self.stop_after_session {
+                        // The temporary window lapsed while this transfer
+                        // ran; it was allowed to finish, and this is "after".
+                        self.stop_after_session = false;
+                        if self.receiving {
+                            self.receiving = false;
+                            self.control(FrontDoorControl::StopAdvertising).await;
+                            self.emit(Event::AdvertisingChanged(false));
+                        }
+                    } else {
+                        // The clock starts again once nothing is in flight.
+                        self.rearm_idle_timer();
+                    }
                 }
             }
             FrontDoorSignal::EndpointUpdated {
@@ -478,6 +592,9 @@ impl Engine {
                 if let Some(active) = self.active.as_mut().filter(|s| s.id == session) {
                     active.total_bytes = total_bytes;
                     active.token = token.clone();
+                    // The phone's user is now looking at the prompt; give
+                    // them the full consent window from here.
+                    self.arm_outbound_deadline();
                     self.emit(Event::SendAwaitingConsent {
                         session,
                         total_bytes,
@@ -488,10 +605,16 @@ impl Engine {
         }
     }
 
-    /// Restart the idle countdown, or clear it when it does not apply.
+    /// Restart the idle countdown, or clear it when it does not apply. A
+    /// temporary window owns the clock, so the idle timer stands down for
+    /// its duration.
     fn rearm_idle_timer(&mut self) {
         let minutes = self.config.limits.auto_off_minutes;
-        self.idle_deadline = if self.receiving && self.active.is_none() && minutes > 0 {
+        self.idle_deadline = if self.receiving
+            && self.active.is_none()
+            && self.receive_until.is_none()
+            && minutes > 0
+        {
             Some(Instant::now() + Duration::from_secs(minutes * 60))
         } else {
             None
@@ -661,5 +784,203 @@ mod tests {
             matches!(event, Event::ErrorOccurred { code, .. } if code == ErrorCode::Busy),
             "expected a busy error, got {event:?}"
         );
+    }
+
+    /// An event that never arrives is the failure these tests look for, so
+    /// waiting forever would report it as a hang rather than a failure.
+    async fn next_event(events: &mut broadcast::Receiver<Event>) -> Event {
+        tokio::time::timeout(Duration::from_secs(5), events.recv())
+            .await
+            .expect("expected an event, none arrived")
+            .unwrap()
+    }
+
+    /// A device that vanished after discovery produces no front-door signal
+    /// at all; without the deadline this wedged the single session slot for
+    /// the life of the process.
+    #[tokio::test(start_paused = true)]
+    async fn an_unanswered_outbound_times_out_and_frees_the_slot() {
+        let (handle, mut control_rx, _signal_tx) = spawn_engine();
+        let mut events = handle.subscribe();
+
+        handle
+            .send(Command::SendText {
+                endpoint: "endpoint-1".into(),
+                kind: "text".into(),
+                description: "note".into(),
+                content: "hello".into(),
+            })
+            .await
+            .unwrap();
+        // The send reaches the front door and then nothing ever comes back.
+        assert!(matches!(
+            control_rx.recv().await.unwrap(),
+            FrontDoorControl::SendText { .. }
+        ));
+
+        // Jump the paused clock past the consent timeout. (Auto-advance
+        // cannot do it: the helper's own 5s timeout is the nearer timer.)
+        tokio::time::advance(Duration::from_secs(
+            Limits::default().accept_timeout_secs + 1,
+        ))
+        .await;
+        let event = next_event(&mut events).await;
+        assert!(
+            matches!(
+                event,
+                Event::SessionEnded {
+                    outcome: SessionOutcome::TimedOut,
+                    ..
+                }
+            ),
+            "expected a timeout, got {event:?}"
+        );
+        assert!(matches!(
+            control_rx.recv().await.unwrap(),
+            FrontDoorControl::Cancel { .. }
+        ));
+
+        // The slot is free again: a new send is not refused as Busy.
+        handle
+            .send(Command::SendText {
+                endpoint: "endpoint-1".into(),
+                kind: "text".into(),
+                description: "note".into(),
+                content: "again".into(),
+            })
+            .await
+            .unwrap();
+        assert!(matches!(
+            control_rx.recv().await.unwrap(),
+            FrontDoorControl::SendText { .. }
+        ));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_temporary_window_turns_receiving_off_when_it_lapses() {
+        let (handle, mut control_rx, _signal_tx) = spawn_engine();
+        let mut events = handle.subscribe();
+
+        handle
+            .send(Command::ReceiveTemporarily { minutes: 10 })
+            .await
+            .unwrap();
+        assert!(matches!(
+            control_rx.recv().await.unwrap(),
+            FrontDoorControl::StartAdvertising { .. }
+        ));
+        assert!(matches!(
+            next_event(&mut events).await,
+            Event::AdvertisingChanged(true)
+        ));
+        assert!(matches!(
+            next_event(&mut events).await,
+            Event::ReceivingUntilChanged {
+                until_epoch_secs: Some(_)
+            }
+        ));
+
+        // Jump the paused clock past the window.
+        tokio::time::advance(Duration::from_secs(10 * 60 + 1)).await;
+        assert!(matches!(
+            next_event(&mut events).await,
+            Event::ReceivingUntilChanged {
+                until_epoch_secs: None
+            }
+        ));
+        assert!(matches!(
+            next_event(&mut events).await,
+            Event::AdvertisingChanged(false)
+        ));
+        assert!(matches!(
+            control_rx.recv().await.unwrap(),
+            FrontDoorControl::StopAdvertising
+        ));
+    }
+
+    #[tokio::test]
+    async fn a_manual_switch_cancels_the_temporary_window() {
+        let (handle, mut control_rx, _signal_tx) = spawn_engine();
+        let mut events = handle.subscribe();
+
+        handle
+            .send(Command::ReceiveTemporarily { minutes: 10 })
+            .await
+            .unwrap();
+        control_rx.recv().await.unwrap();
+        assert!(matches!(
+            next_event(&mut events).await,
+            Event::AdvertisingChanged(true)
+        ));
+        assert!(matches!(
+            next_event(&mut events).await,
+            Event::ReceivingUntilChanged {
+                until_epoch_secs: Some(_)
+            }
+        ));
+
+        // The user flips the switch: the window is over, receiving stays
+        // governed by the switch alone.
+        handle.send(Command::SetReceiving(true)).await.unwrap();
+        assert!(matches!(
+            next_event(&mut events).await,
+            Event::ReceivingUntilChanged {
+                until_epoch_secs: None
+            }
+        ));
+        assert!(matches!(
+            next_event(&mut events).await,
+            Event::AdvertisingChanged(true)
+        ));
+    }
+
+    #[tokio::test]
+    async fn a_redundant_set_receiving_is_still_acknowledged() {
+        let (handle, mut control_rx, _signal_tx) = spawn_engine();
+        let mut events = handle.subscribe();
+
+        // Already off at startup, so this asks for the state we are in. The
+        // UI tracks its switch by the acknowledgement alone: staying silent
+        // here is what used to leave a diverged switch stuck for good.
+        handle.send(Command::SetReceiving(false)).await.unwrap();
+
+        let event = next_event(&mut events).await;
+        assert!(
+            matches!(event, Event::AdvertisingChanged(false)),
+            "expected an off acknowledgement, got {event:?}"
+        );
+        assert!(
+            control_rx.try_recv().is_err(),
+            "a redundant command should not reach the front door"
+        );
+    }
+
+    #[tokio::test]
+    async fn the_last_of_a_rapid_toggle_run_wins() {
+        let (handle, mut control_rx, _signal_tx) = spawn_engine();
+        let mut events = handle.subscribe();
+
+        // The UI dispatches every click without waiting for the round trip,
+        // so these arrive back to back.
+        handle.send(Command::SetReceiving(true)).await.unwrap();
+        handle.send(Command::SetReceiving(false)).await.unwrap();
+
+        assert!(matches!(
+            control_rx.recv().await.unwrap(),
+            FrontDoorControl::StartAdvertising { .. }
+        ));
+        assert!(matches!(
+            control_rx.recv().await.unwrap(),
+            FrontDoorControl::StopAdvertising
+        ));
+
+        assert!(matches!(
+            next_event(&mut events).await,
+            Event::AdvertisingChanged(true)
+        ));
+        assert!(matches!(
+            next_event(&mut events).await,
+            Event::AdvertisingChanged(false)
+        ));
     }
 }

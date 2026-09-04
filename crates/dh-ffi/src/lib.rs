@@ -121,6 +121,12 @@ pub enum DHEvent {
         code: ErrorCode,
         message: String,
     },
+    /// The fixed receiving window changed: `Some(epoch seconds)` when a
+    /// temporary window is armed, `None` when it lapses or a manual
+    /// `set_receiving` takes over.
+    ReceivingUntilChanged {
+        until_epoch_secs: Option<u64>,
+    },
     DiscoveringChanged {
         on: bool,
     },
@@ -262,6 +268,14 @@ impl DHService {
         self.send(Command::SetAutoOffMinutes(minutes))
     }
 
+    /// Turn receiving on for a fixed number of minutes, then off again. The
+    /// engine owns the deadline and reports it through
+    /// `ReceivingUntilChanged`, so the UI renders the clock it is given
+    /// rather than running one of its own against the idle timer.
+    pub fn receive_temporarily(&self, minutes: u64) -> Result<(), DHError> {
+        self.send(Command::ReceiveTemporarily { minutes })
+    }
+
     /// Toggle discovery of nearby Android devices (for sending). The phone
     /// must have its Quick Share screen open to be discoverable.
     pub fn set_discovering(&self, on: bool) -> Result<(), DHError> {
@@ -379,6 +393,9 @@ fn convert_event(event: Event) -> DHEvent {
                 dh_domain::SessionOutcome::Failed => SessionOutcome::Failed,
             },
         },
+        Event::ReceivingUntilChanged { until_epoch_secs } => {
+            DHEvent::ReceivingUntilChanged { until_epoch_secs }
+        }
         Event::DiscoveringChanged(on) => DHEvent::DiscoveringChanged { on },
         Event::EndpointUpdated {
             endpoint,

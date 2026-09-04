@@ -4,12 +4,6 @@ import Foundation
 // release. Deliberately not an auto-updater: it notices a newer version and
 // points at the download, leaving the install to the user.
 
-struct AvailableUpdate: Equatable {
-    let version: String
-    let url: URL
-    let notes: String?
-}
-
 /// The shape `release.sh` writes to updates.json.
 private struct Manifest: Decodable {
     let version: String

@@ -364,10 +364,12 @@ async fn handle_event(
         Event::TextReceived { kind, content, .. } => {
             println!("\nReceived {kind}: {content}");
         }
-        // Outbound events do not occur in receive mode.
+        // Outbound events do not occur in receive mode, and the CLI offers
+        // no temporary-window command for the deadline event to describe.
         Event::DiscoveringChanged(_)
         | Event::EndpointUpdated { .. }
-        | Event::SendAwaitingConsent { .. } => {}
+        | Event::SendAwaitingConsent { .. }
+        | Event::ReceivingUntilChanged { .. } => {}
     }
     Ok(true)
 }

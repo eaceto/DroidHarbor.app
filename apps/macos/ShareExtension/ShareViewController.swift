@@ -31,7 +31,7 @@ final class ShareViewController: NSViewController {
         for provider in attachments {
             if let url = await provider.loadURL() {
                 if url.isFileURL {
-                    files.append(url)
+                    files.append(stabilized(url))
                 } else {
                     // A web address shared from a browser.
                     text = text ?? url.absoluteString
@@ -55,6 +55,38 @@ final class ShareViewController: NSViewController {
 
         deliver(destination)
         extensionContext?.completeRequest(returningItems: nil)
+    }
+
+    /// A path the file will still be at once this process is gone.
+    ///
+    /// Finder shares hand over the user's real file, which outlives the
+    /// extension and passes through untouched. Photos, Mail and friends vend
+    /// a temporary copy inside this extension's own sandbox, and macOS may
+    /// reap it the moment the request completes — before the app has read
+    /// it. Those are copied into the container's persistent outbox, which
+    /// the app sweeps of old batches at launch.
+    private lazy var outboxBatch = AppInfo.shareOutbox?
+        .appendingPathComponent(UUID().uuidString, isDirectory: true)
+
+    private func stabilized(_ url: URL) -> URL {
+        let path = url.path
+        let ephemeral = path.hasPrefix(NSTemporaryDirectory())
+            || path.hasPrefix(NSHomeDirectory())
+            || path.hasPrefix("/private/var/folders")
+            || path.hasPrefix("/var/folders")
+        guard ephemeral, let batch = outboxBatch else { return url }
+
+        do {
+            try FileManager.default.createDirectory(at: batch, withIntermediateDirectories: true)
+            let stable = batch.appendingPathComponent(url.lastPathComponent)
+            try FileManager.default.copyItem(at: url, to: stable)
+            return stable
+        } catch {
+            // Better to hand over the original and race the teardown than to
+            // hand over nothing.
+            NSLog("DroidHarbor: could not stabilize \(url.lastPathComponent): \(error)")
+            return url
+        }
     }
 
     /// Get the request to the app.

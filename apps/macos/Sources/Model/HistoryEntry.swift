@@ -65,6 +65,25 @@ struct HistoryEntry: Codable, Identifiable, Equatable {
     /// Whether the row is named by a filename rather than by its content.
     var isFile: Bool { kind == .files || (paths.isEmpty == false && content == nil) }
 
+    /// True for a received file whose saved copy is no longer at its
+    /// recorded path. Only files can go missing; a link or text is always
+    /// "there", and a sent file was never this app's to track. Touches the
+    /// filesystem, so callers are UI rows and the prune pass, not hot loops.
+    var isMissingFromDisk: Bool {
+        guard isFile, direction == .received else { return false }
+        guard let path = paths.first else { return true }
+        // A missing parent means the folder or its volume is unreachable —
+        // an unplugged disk, a network share that is away — not that the
+        // file was deleted. Pruning on that read would erase the history of
+        // everything saved to an external drive the moment it is unplugged.
+        var parentIsDirectory: ObjCBool = false
+        let parent = (path as NSString).deletingLastPathComponent
+        guard FileManager.default.fileExists(atPath: parent, isDirectory: &parentIsDirectory),
+              parentIsDirectory.boolValue
+        else { return false }
+        return !FileManager.default.fileExists(atPath: path)
+    }
+
     var primaryName: String {
         if let content, !isFile { return content }
         guard let first = paths.first else { return String(localized: "Transfer") }
