@@ -12,7 +12,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// connection to its host.
     static let isRunningTests = NSClassFromString("XCTestCase") != nil
 
-    let state = AppState(startService: !AppDelegate.isRunningTests)
+    /// Built without its service: this property is initialized at delegate
+    /// construction, before `applicationDidFinishLaunching` can run the
+    /// single-instance check, and a doomed duplicate that starts the service
+    /// here binds the port and re-advertises for the moment it takes to stand
+    /// down — the precise collision the check exists to prevent. The service
+    /// starts below, once this copy knows it is the only one.
+    let state = AppState(startService: false)
 
     private var statusItem: NSStatusItem?
     private let popover = NSPopover()
@@ -54,6 +60,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             andEventID: AEEventID(kAEGetURL))
 
         guard ensureSingleInstance() else { return }
+        state.startServiceIfNeeded()
+        AppInfo.sweepShareOutbox()
         observeForwardedURLs()
         configureNotifications()
         configureStatusItem()
@@ -187,6 +195,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // The menu-bar item is the app's home; closing the window is not
         // quitting.
         false
+    }
+
+    /// ⌘Q, Dock → Quit and a logout all end the process without passing
+    /// through the gear menu's Quit; the receiver must still unregister from
+    /// mDNS, or phones keep offering a Mac that is no longer listening.
+    func applicationWillTerminate(_ notification: Notification) {
+        state.shutdownService()
     }
 
     /// Both of these live in System Settings, where the user can change them

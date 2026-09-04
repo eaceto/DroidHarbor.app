@@ -56,6 +56,11 @@ pub struct Active {
     pub total_bytes: u64,
     pub current_file: String,
     pub files: Vec<FileLine>,
+    /// Where each finished file actually landed, as `FileFinalized`
+    /// reported it. The offered name alone is not enough: the finalizer
+    /// sanitizes it and appends ` (n)` on collision, so a path rebuilt
+    /// from the offer can point at a different, older file.
+    pub finalized_paths: Vec<String>,
     samples: Vec<Sample>,
 }
 
@@ -79,6 +84,7 @@ impl Active {
             total_bytes,
             current_file: String::new(),
             files,
+            finalized_paths: Vec::new(),
             samples: Vec::new(),
         }
     }
@@ -95,6 +101,7 @@ impl Active {
             total_bytes,
             current_file: String::new(),
             files: Vec::new(),
+            finalized_paths: Vec::new(),
             samples: Vec::new(),
         }
     }

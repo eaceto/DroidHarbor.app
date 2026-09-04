@@ -233,7 +233,18 @@ impl Entry {
         let Some(first) = self.paths.first() else {
             return true;
         };
-        !resolve_path(first, destination).exists()
+        let resolved = resolve_path(first, destination);
+        // A missing parent means the folder or its volume is unreachable —
+        // an unmounted disk, a network share that is away — not that the
+        // file was deleted. Pruning on that read would erase the history of
+        // everything saved to an external drive the moment it is unplugged.
+        let Some(parent) = resolved.parent() else {
+            return false;
+        };
+        if !parent.is_dir() {
+            return false;
+        }
+        !resolved.exists()
     }
 
     /// Free-text match over what someone would actually type: part of a name,
@@ -439,6 +450,16 @@ mod tests {
         std::fs::remove_file(&on_disk).unwrap();
         assert!(absolute.is_missing_from_disk(&destination));
         assert!(legacy.is_missing_from_disk(&destination));
+
+        // An unreachable folder is not a deleted file: entries pointing into
+        // a directory that does not exist (an unplugged disk, an unmounted
+        // share) must survive the prune.
+        let unplugged = Entry::new(
+            Direction::Received,
+            "Pixel 8".into(),
+            vec!["/Volumes/droidharbor-test-gone/photo.jpg".into()],
+        );
+        assert!(!unplugged.is_missing_from_disk(&destination));
 
         // Never "missing": sent files, links, and text.
         let sent = Entry::new(

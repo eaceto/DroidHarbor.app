@@ -92,10 +92,20 @@ pub fn render(model: &App, widgets: &mut AppWidgets, sender: &ComponentSender<Ap
     widgets
         .empty_state
         .set_description(Some(&if model.receiving {
-            format!(
+            let mut description = format!(
                 "On the phone: pick files, then Share → Quick Share → “{}”.",
                 model.device_name
-            )
+            );
+            // A temporary window says when it ends, in the engine's words.
+            if let Some(until) = model.receiving_until {
+                if let Some(at) = chrono::DateTime::from_timestamp(until as i64, 0) {
+                    description.push_str(&format!(
+                        "\nReceiving turns off at {}.",
+                        at.with_timezone(&chrono::Local).format("%H:%M")
+                    ));
+                }
+            }
+            description
         } else {
             "Turn receiving on to accept files from nearby Android devices.".to_string()
         }));

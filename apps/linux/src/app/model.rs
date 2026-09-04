@@ -94,6 +94,10 @@ pub struct App {
     pub history_revision: u64,
 
     pub receiving: bool,
+    /// When the engine's temporary receiving window ends (Unix epoch
+    /// seconds), as `ReceivingUntilChanged` reported it; `None` outside a
+    /// window. The engine owns the clock — this is display state only.
+    pub receiving_until: Option<u64>,
     pub discovering: bool,
     pub device_name: String,
     pub destination: PathBuf,

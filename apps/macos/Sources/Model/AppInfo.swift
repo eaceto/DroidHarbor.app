@@ -41,6 +41,53 @@ enum AppInfo {
         Bundle.main.bundleIdentifier?.contains(".dev") == true
     }
 
+    // MARK: - Share-extension outbox
+
+    /// Where the share extension parks copies of provider-vended files.
+    ///
+    /// Photos, Mail and friends hand the extension a temporary file inside
+    /// its own sandbox container, and that file can be reaped the moment the
+    /// extension completes its request — before the app has read it. The
+    /// extension therefore copies such files into this folder, which lives in
+    /// the container's persistent area, and hands the app the stable paths.
+    ///
+    /// Both sides compute the same location: inside the sandboxed extension
+    /// this resolves through its own home; in the (unsandboxed) app it is
+    /// spelled out through the container path.
+    static var shareOutbox: URL? {
+        guard let id = Bundle.main.bundleIdentifier else { return nil }
+        if id.hasSuffix(".share") {
+            // The extension: its home *is* the container data directory.
+            return FileManager.default
+                .homeDirectoryForCurrentUser
+                .appendingPathComponent("Library/Application Support/Outbox", isDirectory: true)
+        }
+        return FileManager.default
+            .homeDirectoryForCurrentUser
+            .appendingPathComponent(
+                "Library/Containers/\(id).share/Data/Library/Application Support/Outbox",
+                isDirectory: true)
+    }
+
+    /// Drop outbox batches old enough that no transfer can still want them.
+    /// The app cannot know when a given batch was sent — the user may stage
+    /// it and walk away — so age, not session accounting, is the criterion.
+    static func sweepShareOutbox(olderThan age: TimeInterval = 2 * 86_400) {
+        guard let outbox = shareOutbox else { return }
+        let fm = FileManager.default
+        guard let batches = try? fm.contentsOfDirectory(
+            at: outbox, includingPropertiesForKeys: [.contentModificationDateKey])
+        else { return }
+        let cutoff = Date().addingTimeInterval(-age)
+        for batch in batches {
+            let modified = (try? batch.resourceValues(forKeys: [.contentModificationDateKey]))?
+                .contentModificationDate ?? .distantPast
+            if modified < cutoff {
+                try? fm.removeItem(at: batch)
+            }
+        }
+    }
+
     private static func string(for key: String, default fallback: String) -> String {
         let value = Bundle.main.object(forInfoDictionaryKey: key) as? String
         return value?.isEmpty == false ? value! : fallback

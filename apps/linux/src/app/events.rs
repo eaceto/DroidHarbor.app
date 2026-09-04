@@ -121,7 +121,19 @@ impl App {
                 }
             }
 
-            Event::FileFinalized { .. } => {}
+            Event::FileFinalized { session, path } => {
+                // The real landed path. The offered name is not it: the
+                // finalizer sanitizes and appends ` (n)` on collision, and a
+                // history row rebuilt from the offer then reveals the wrong
+                // file — or gets pruned for pointing at nothing.
+                if let Some(active) = self.active.as_mut().filter(|a| a.session == session) {
+                    active.finalized_paths.push(path);
+                }
+            }
+
+            Event::ReceivingUntilChanged { until_epoch_secs } => {
+                self.receiving_until = until_epoch_secs;
+            }
 
             Event::TextReceived {
                 kind,
@@ -162,15 +174,19 @@ impl App {
 
                 if let Some(active) = &finished {
                     if active.text_preview.is_none() && !active.outgoing {
-                        // Absolute paths, not bare names: Reveal and the
-                        // missing-file prune both ask the filesystem about
-                        // them, and a name alone answers for the wrong
-                        // directory once the destination changes.
-                        let paths: Vec<String> = active
-                            .files
-                            .iter()
-                            .map(|file| self.destination.join(&file.name).display().to_string())
-                            .collect();
+                        // Prefer the paths FileFinalized reported — those are
+                        // where the files actually are, collision suffixes
+                        // and all. The join is only the fallback for a
+                        // session that ended before anything finalized.
+                        let paths: Vec<String> = if active.finalized_paths.is_empty() {
+                            active
+                                .files
+                                .iter()
+                                .map(|file| self.destination.join(&file.name).display().to_string())
+                                .collect()
+                        } else {
+                            active.finalized_paths.clone()
+                        };
                         if !paths.is_empty() {
                             self.remember(history::Entry::new(
                                 history::Direction::Received,
@@ -191,10 +207,18 @@ impl App {
                         && !was_outgoing
                         && active.text_preview.is_none()
                     {
+                        // The finalized path, for the same reason as the
+                        // history record above.
                         active
-                            .files
+                            .finalized_paths
                             .first()
-                            .map(|file| self.destination.join(&file.name))
+                            .map(std::path::PathBuf::from)
+                            .or_else(|| {
+                                active
+                                    .files
+                                    .first()
+                                    .map(|file| self.destination.join(&file.name))
+                            })
                     } else {
                         None
                     };

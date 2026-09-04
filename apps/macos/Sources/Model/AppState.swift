@@ -69,7 +69,6 @@ final class AppState: ObservableObject {
     /// Details of the tapped device while the send command is in flight.
     private var sendTargetName: String?
     private var sendPayload: SendPayload?
-    private var autoOffTask: Task<Void, Never>?
     /// Set when the current session delivered a link or text, so its
     /// completion is not also announced as "0 files received".
     private var sessionDeliveredText = false
@@ -185,49 +184,62 @@ final class AppState: ObservableObject {
         if persist {
             defaults.set(on, forKey: Self.receivingKey)
         }
-        if !on || persist {
-            autoOffTask?.cancel()
-            autoOffTask = nil
-            receivingUntil = nil
+        // `try service?.x()` on a nil service returns nil without throwing,
+        // so the catch alone never fired and a dead receiver left the toggle
+        // silently inert.
+        guard let service else {
+            lastError = String(localized: "Receiver is not running.")
+            refreshIcon()
+            return
         }
         do {
-            try service?.setReceiving(on: on)
+            try service.setReceiving(on: on)
         } catch {
             lastError = String(localized: "Receiver is not running.")
         }
         refreshIcon()
     }
 
-    /// Turn receiving on for a fixed window, then off again. Deliberately not
-    /// persisted: a temporary session should not survive a restart.
+    /// Turn receiving on for a fixed window, then off again. The engine owns
+    /// the deadline and reports it through `receivingUntilChanged`; running a
+    /// Swift timer beside the engine's idle timer let the two disagree about
+    /// when receiving ends. Deliberately not persisted: a temporary session
+    /// should not survive a restart.
     func receiveTemporarily(minutes: Int) {
-        autoOffTask?.cancel()
-        setReceiving(true, persist: false)
-        let deadline = Date().addingTimeInterval(TimeInterval(minutes * 60))
-        receivingUntil = deadline
-        autoOffTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(minutes * 60))
-            guard !Task.isCancelled else { return }
-            await MainActor.run {
-                guard let self else { return }
-                self.receivingUntil = nil
-                self.setReceiving(false, persist: false)
-            }
+        guard let service else {
+            lastError = String(localized: "Receiver is not running.")
+            return
         }
+        try? service.receiveTemporarily(minutes: UInt64(max(1, minutes)))
     }
 
     func accept(_ session: UInt64) {
-        try? service?.accept(session: session)
+        // The card flips optimistically either way — that is also the seam
+        // the tests drive events through — but a dead receiver now says so
+        // instead of accepting into the void.
+        if let service {
+            try? service.accept(session: session)
+        } else {
+            lastError = String(localized: "Receiver is not running.")
+        }
         transfer?.receiving = true
         refreshIcon()
     }
 
     func decline(_ session: UInt64) {
-        try? service?.decline(session: session)
+        if let service {
+            try? service.decline(session: session)
+        } else {
+            lastError = String(localized: "Receiver is not running.")
+        }
     }
 
     func cancel(_ session: UInt64) {
-        try? service?.cancel(session: session)
+        if let service {
+            try? service.cancel(session: session)
+        } else {
+            lastError = String(localized: "Receiver is not running.")
+        }
     }
 
     // MARK: - Settings
@@ -240,14 +252,33 @@ final class AppState: ObservableObject {
         panel.prompt = String(localized: "Save Here")
         NSApp.activate(ignoringOtherApps: true)
         guard panel.runModal() == .OK, let url = panel.url else { return }
+        // Splitting a running batch across two folders helps nobody; a
+        // restart used to make this worse by killing the transfer outright.
+        guard transfer == nil, outbound == nil else {
+            lastError = String(
+                localized: "Finish the current transfer before changing where files are saved.")
+            return
+        }
         destination = url
         defaults.set(url.path, forKey: Self.destinationKey)
-        restartService()
+        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        // In place, not via restartService(): the engine retargets
+        // finalization, and staging on the old volume degrades to
+        // finalize_file's copy-into-place fallback rather than to a dead
+        // receiver. The staging directory follows at the next service start.
+        try? service?.setDestination(path: url.path)
     }
 
     func rename(to name: String) {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty, trimmed != deviceName else { return }
+        // The new name only reaches the wire through a full service restart,
+        // and a restart aborts whatever is in flight.
+        guard transfer == nil, outbound == nil else {
+            lastError = String(
+                localized: "Finish the current transfer before renaming this Mac.")
+            return
+        }
         deviceName = trimmed
         defaults.set(trimmed, forKey: Self.deviceNameKey)
         restartService()
@@ -560,15 +591,24 @@ final class AppState: ObservableObject {
 
     private func send(_ payload: SendPayload, to endpoint: Endpoint) {
         guard !payload.isEmpty else { return }
+        // Bookkeeping before the service guard: with a dead receiver the
+        // attempt still becomes the retryable last send, and the staged
+        // payload survives. The old optional-chained calls were a silent
+        // no-op that cleared the staging anyway — the user clicked a device
+        // and everything simply vanished.
         sendTargetName = endpoint.name
         sendPayload = payload
         lastSend = (endpoint, payload)
+        guard let service else {
+            lastError = String(localized: "Receiver is not running.")
+            return
+        }
         do {
             switch payload {
             case .files(let urls):
-                try service?.sendFiles(endpoint: endpoint.id, files: urls.map(\.path))
+                try service.sendFiles(endpoint: endpoint.id, files: urls.map(\.path))
             case .text(let text):
-                try service?.sendText(
+                try service.sendText(
                     endpoint: endpoint.id,
                     kind: text.wireKind,
                     description: text.title,
@@ -611,8 +651,25 @@ final class AppState: ObservableObject {
     }
 
     func quit() {
-        try? service?.shutdown()
+        shutdownService()
         NSApp.terminate(nil)
+    }
+
+    /// Stop advertising and end the engine. Shared by every exit path — the
+    /// gear menu's Quit, ⌘Q and Dock-Quit alike — so no way out of the app
+    /// leaves a ghost mDNS advertisement or a half-written staging file.
+    func shutdownService() {
+        try? service?.shutdown()
+        service = nil
+    }
+
+    /// Called by the app delegate once it is certain this copy is the only
+    /// one running. Starting at construction let a doomed duplicate bind the
+    /// port and advertise for the moment before the single-instance check —
+    /// exactly the collision that check exists to prevent.
+    func startServiceIfNeeded() {
+        guard service == nil else { return }
+        startService()
     }
 
     // MARK: - Domain events
@@ -621,6 +678,12 @@ final class AppState: ObservableObject {
         switch event {
         case .advertisingChanged(let on):
             receiving = on
+
+        case .receivingUntilChanged(let untilEpochSecs):
+            // The engine owns the temporary window; this is its clock. A
+            // Swift timer used to run beside the engine's idle timer, and
+            // the countdown kept counting after receiving had stopped.
+            receivingUntil = untilEpochSecs.map { Date(timeIntervalSince1970: TimeInterval($0)) }
 
         case .sessionConnected:
             break

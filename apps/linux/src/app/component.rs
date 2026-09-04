@@ -43,6 +43,7 @@ impl SimpleComponent for App {
             history_path: init.history_path,
             history_revision: 1,
             receiving: false,
+            receiving_until: None,
             discovering: false,
             device_name: init.device_name,
             destination: init.destination,
@@ -237,6 +238,20 @@ impl SimpleComponent for App {
             Msg::SetDiscovering(on) => self.dispatch(Command::SetDiscovering(on)),
 
             Msg::Consent { session, decision } => {
+                // The same consent can be answered twice — the window card
+                // and a notification that outlived it — or arrive for a
+                // session long gone. Only the still-pending active session
+                // may be answered: a stale notification's expiry otherwise
+                // declined a transfer the user had already accepted, and
+                // wiped its card mid-flight.
+                let pending = self
+                    .active
+                    .as_ref()
+                    .is_some_and(|a| a.session == session && !a.outgoing && !a.running);
+                if !pending {
+                    tracing::debug!(%session, ?decision, "ignoring consent for a settled session");
+                    return;
+                }
                 if decision == platform::Decision::AcceptAlways {
                     if let Some(peer) = self.active.as_ref().map(|active| active.peer.clone()) {
                         self.prefs.trust(&peer);
@@ -252,7 +267,14 @@ impl SimpleComponent for App {
                 } else {
                     Command::Decline(session)
                 });
-                if !accepted {
+                if accepted {
+                    // Marked running straight away, so a second answer from
+                    // the other surface no longer counts as pending.
+                    if let Some(active) = self.active.as_mut() {
+                        active.running = true;
+                        self.active_revision += 1;
+                    }
+                } else {
                     self.active = None;
                     self.active_revision += 1;
                 }
@@ -526,10 +548,11 @@ impl SimpleComponent for App {
             Msg::ShowAbout => ui::present_about(&self.window),
 
             Msg::ReceiveFor(minutes) => {
-                // Deliberately not saved: this is a one-off, not a change to
-                // the preference the Settings page shows.
-                self.dispatch(Command::SetAutoOffMinutes(minutes));
-                self.dispatch(Command::SetReceiving(true));
+                // The engine owns the window and reports its deadline, so
+                // nothing here touches the auto-off preference — the old
+                // SetAutoOffMinutes overwrite left the domain stuck on the
+                // temporary value for the life of the process.
+                self.dispatch(Command::ReceiveTemporarily { minutes });
                 self.notice(format!("Receiving for {minutes} minutes."));
             }
 

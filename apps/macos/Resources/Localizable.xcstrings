@@ -2090,6 +2090,50 @@
         }
       }
     },
+    "Finish the current transfer before changing where files are saved." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termina la transferencia actual antes de cambiar dónde se guardan los archivos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminez le transfert en cours avant de changer l’emplacement d’enregistrement des fichiers."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completa il trasferimento in corso prima di cambiare dove vengono salvati i file."
+          }
+        }
+      }
+    },
+    "Finish the current transfer before renaming this Mac." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termina la transferencia actual antes de renombrar este Mac."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminez le transfert en cours avant de renommer ce Mac."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completa il trasferimento in corso prima di rinominare questo Mac."
+          }
+        }
+      }
+    },
     "Forget" : {
       "extractionState" : "manual",
       "localizations" : {

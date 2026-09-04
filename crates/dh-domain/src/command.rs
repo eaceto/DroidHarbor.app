@@ -20,6 +20,12 @@ pub enum Command {
     /// Turn receiving off automatically after this many idle minutes;
     /// `0` disables the timer. Idle means advertising with no live transfer.
     SetAutoOffMinutes(u64),
+    /// Turn receiving on for a fixed window, then off again. The engine owns
+    /// the deadline and reports it via `ReceivingUntilChanged`, so every UI
+    /// shows the same clock instead of racing its own timer against the idle
+    /// one. A manual `SetReceiving` cancels the window; a transfer running
+    /// when it lapses finishes first, and receiving stops after.
+    ReceiveTemporarily { minutes: u64 },
     /// Toggle discovery of nearby Android devices (for sending). The phone
     /// must have its Quick Share screen open to be discoverable.
     SetDiscovering(bool),

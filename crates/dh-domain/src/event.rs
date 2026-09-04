@@ -42,6 +42,11 @@ pub enum Event {
         code: ErrorCode,
         message: String,
     },
+    /// The fixed receiving window changed: `Some(epoch seconds)` when a
+    /// `ReceiveTemporarily` window is armed, `None` when it lapses or a
+    /// manual `SetReceiving` takes over. Wall-clock so a UI can render a
+    /// countdown without private state.
+    ReceivingUntilChanged { until_epoch_secs: Option<u64> },
     /// Endpoint discovery started or stopped (mirrors `SetDiscovering`).
     DiscoveringChanged(bool),
     /// A nearby Android device appeared (`present: true`) or vanished.

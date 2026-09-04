@@ -46,6 +46,21 @@ jobs:
           [ "$version" = "$GITHUB_REF_NAME" ] && version="0.0.0-$(git rev-parse --short HEAD)"
           echo "value=$version" >> "$GITHUB_OUTPUT"
 
+      - name: Set the crate version
+        # The binary reports CARGO_PKG_VERSION in About and compares it
+        # against the update manifest. Left at the checked-in value, every CI
+        # AppImage would identify as that version regardless of tag and offer
+        # itself as an update forever. Same awk as apps/linux/release.sh.
+        env:
+          DH_VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          cd apps/linux
+          awk -v v="$DH_VERSION" '
+              /^version = / && !done { print "version = \"" v "\""; done = 1; next }
+              { print }
+          ' Cargo.toml > Cargo.toml.new && mv Cargo.toml.new Cargo.toml
+          grep -q "version = \"$DH_VERSION\"" Cargo.toml
+
       - name: Build the AppImage
         # The version reaches the shell through the environment rather than by
         # interpolation, so a tag name can never be read as shell syntax.
@@ -58,6 +73,12 @@ jobs:
             -e DH_VERSION \
             -w /src/apps/linux \
             droidharbor-build:24.04 ./Packaging/build-appimage.sh
+
+      - name: Reclaim the build directory
+        # The container runs as root, so without this the verify and checksum
+        # steps below cannot write beside the AppImage. (The draft workflow
+        # learned this first; the fix belongs here too.)
+        run: sudo chown -R "$(id -u):$(id -g)" apps/linux/build
 
       # A bundle that is missing its runtime furniture still builds and still
       # exits zero; it only fails when a user runs it. Check the pieces here.
@@ -103,4 +124,47 @@ jobs:
           files: |
             apps/linux/build/DroidHarbor-*.AppImage
             apps/linux/build/SHA256SUMS-*.txt
+          fail_on_unmatched_files: true
+
+  # The manifest is what the in-app update check reads; a release without it
+  # exists but is never announced to anyone. Assembled after both architecture
+  # legs so it describes every AppImage the release actually carries.
+  manifest:
+    name: Update manifest
+    needs: appimage
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: droidharbor-*
+          merge-multiple: true
+          path: dist
+
+      - name: Write updates-linux.json
+        # Same shape as apps/linux/release.sh writes: version, notes, and one
+        # {url, sha256} artifact per architecture key.
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}"
+          {
+            printf '{\n  "version": "%s",\n  "notes": null,\n  "artifacts": {\n' "$version"
+            first=1
+            for file in dist/DroidHarbor-*.AppImage; do
+              name="$(basename "$file")"
+              # DroidHarbor-<version>-<arch>.AppImage
+              arch="${name##*-}"; arch="${arch%.AppImage}"
+              sum="$(sha256sum "$file" | cut -d' ' -f1)"
+              [ $first -eq 1 ] || printf ',\n'
+              first=0
+              printf '    "%s": { "url": "%s/%s", "sha256": "%s" }' "$arch" "$base" "$name" "$sum"
+            done
+            printf '\n  }\n}\n'
+          } > updates-linux.json
+          cat updates-linux.json
+
+      - name: Attach to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: updates-linux.json
           fail_on_unmatched_files: true

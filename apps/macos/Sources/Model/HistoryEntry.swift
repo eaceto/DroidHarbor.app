@@ -72,6 +72,15 @@ struct HistoryEntry: Codable, Identifiable, Equatable {
     var isMissingFromDisk: Bool {
         guard isFile, direction == .received else { return false }
         guard let path = paths.first else { return true }
+        // A missing parent means the folder or its volume is unreachable —
+        // an unplugged disk, a network share that is away — not that the
+        // file was deleted. Pruning on that read would erase the history of
+        // everything saved to an external drive the moment it is unplugged.
+        var parentIsDirectory: ObjCBool = false
+        let parent = (path as NSString).deletingLastPathComponent
+        guard FileManager.default.fileExists(atPath: parent, isDirectory: &parentIsDirectory),
+              parentIsDirectory.boolValue
+        else { return false }
         return !FileManager.default.fileExists(atPath: path)
     }
 
