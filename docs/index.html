@@ -208,15 +208,30 @@ tuist generate
       </div></li>
     </ol>
 
-    <figure class="shot" data-pending="images/window-receive.png">
-      <img src="images/window-receive.png" alt="The DroidHarbor window showing an incoming transfer with a four-digit confirmation code and Accept and Decline buttons." loading="lazy">
-      <figcaption>An incoming transfer, with the code to check and the choice to make. Notifications carry the same Accept and Decline.</figcaption>
-    </figure>
-
-    <figure class="shot" data-pending="images/window-receive-multiple-files.png">
-      <img src="images/window-receive-multiple-files.png" alt="DroidHarbor receiving eight files, showing overall progress with speed and time remaining, and each file marked done, in progress or waiting." loading="lazy">
-      <figcaption>A batch in flight: the total with speed and time remaining, and every file's own state, whether finished, running or still queued.</figcaption>
-    </figure>
+    <div class="gallery-frame">
+      <div class="gallery" role="region" aria-label="Receiving, in screenshots" tabindex="0">
+        <figure class="shot" data-pending="images/window-receive.png">
+          <img src="images/window-receive.png" alt="The DroidHarbor window showing an incoming transfer with a four-digit confirmation code and Accept and Decline buttons." loading="lazy">
+          <figcaption>The incoming transfer: check the code, make the choice. Notifications carry the same Accept and Decline.</figcaption>
+        </figure>
+        <figure class="shot" data-pending="images/window-receive-multiple-files.png">
+          <img src="images/window-receive-multiple-files.png" alt="DroidHarbor being offered nine files at once, listing each file with its size, one confirmation code and one Accept for the whole batch." loading="lazy">
+          <figcaption>Nine files offered at once: one code, one decision for the whole batch.</figcaption>
+        </figure>
+        <figure class="shot" data-pending="images/window-receive-multiple-files-2.png">
+          <img src="images/window-receive-multiple-files-2.png" alt="DroidHarbor receiving the batch, showing overall progress with speed and time remaining, and each file marked done or in progress." loading="lazy">
+          <figcaption>The batch in flight: total speed and time remaining, and every file's own state.</figcaption>
+        </figure>
+        <figure class="shot" data-pending="images/window-history.png">
+          <img src="images/window-history.png" alt="The DroidHarbor history list with type filters, showing received files and links." loading="lazy">
+          <figcaption>Afterwards, History: filtered by type, searchable, stored as plain JSON you own.</figcaption>
+        </figure>
+      </div>
+      <div class="gallery-nav">
+        <button class="gallery-btn" type="button" data-dir="-1" aria-label="Previous screenshot"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+        <button class="gallery-btn" type="button" data-dir="1" aria-label="Next screenshot"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
+      </div>
+    </div>
 
     <div class="callout">
       <p><strong>Trusted devices.</strong> Tick <em>Always accept</em> when you accept a transfer and that phone skips the prompt next time. Devices are matched by the name they announce, which a device chooses for itself, so trust the ones you own.</p>
@@ -224,15 +239,11 @@ tuist generate
 
     <h3 style="margin-top:2.8rem">Everything that arrived, in one place</h3>
     <p>
-      History keeps files, links, text, contacts, events, numbers and addresses
-      together, each with the actions that suit it: reveal a file in Finder,
-      open a link, call a number, add a contact. Filter by type, or search by
-      name, extension, domain or sender.
+      History — the last screenshot above — keeps files, links, text, contacts,
+      events, numbers and addresses together, each with the actions that suit
+      it: reveal a file in Finder, open a link, call a number, add a contact.
+      Filter by type, or search by name, extension, domain or sender.
     </p>
-    <figure class="shot" data-pending="images/window-history.png">
-      <img src="images/window-history.png" alt="The DroidHarbor history list with type filters, showing received files and links." loading="lazy">
-      <figcaption>History, filtered by type and searchable. It lives in <code>~/.droidharbor/history.json</code>, as plain readable JSON you own.</figcaption>
-    </figure>
   </div>
 </section>
 
@@ -257,11 +268,6 @@ tuist generate
     <figure class="shot" data-pending="images/window-send.png">
       <img src="images/window-send.png" alt="The Send tab of DroidHarbor with a drop zone inviting files, links or text, and buttons to choose files or send text." loading="lazy">
       <figcaption>Drop something — the nearby devices appear as soon as there is something to send.</figcaption>
-    </figure>
-
-    <figure class="shot" data-pending="images/window-send-large-file.png">
-      <img src="images/window-send-large-file.png" alt="DroidHarbor sending a 524.9 MB file to a Pixel 8, showing progress and a Cancel button." loading="lazy">
-      <figcaption>Half a gigabyte on its way out, with a Cancel button for as long as it takes.</figcaption>
     </figure>
   </div>
 </section>
@@ -390,6 +396,21 @@ tuist generate
     if (!img) continue;
     if (img.complete && img.naturalWidth === 0) figure.classList.add('is-missing');
     img.addEventListener('error', () => figure.classList.add('is-missing'));
+  }
+
+  // Gallery arrows: step one slide at a time. Touch and trackpads scroll the
+  // strip natively; these exist for the mouse.
+  for (const frame of document.querySelectorAll('.gallery-frame')) {
+    const strip = frame.querySelector('.gallery');
+    if (!strip) continue;
+    for (const button of frame.querySelectorAll('.gallery-btn')) {
+      button.addEventListener('click', () => {
+        const slide = strip.querySelector('.shot');
+        const step = (slide ? slide.getBoundingClientRect().width + 16 : strip.clientWidth);
+        const smooth = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+        strip.scrollBy({ left: step * Number(button.dataset.dir), behavior: smooth ? 'smooth' : 'auto' });
+      });
+    }
   }
 </script>
 
