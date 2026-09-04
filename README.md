@@ -77,6 +77,9 @@ Requires stable Rust. The macOS app additionally requires Xcode and Tuist
 (see [`apps/macos/README.md`](apps/macos/README.md)); the Linux app requires
 GTK4 and libadwaita (see [`apps/linux/README.md`](apps/linux/README.md)).
 
+Releasing — tagging, signing, notarizing, publishing both apps from one
+tag — is documented step by step in [DEVELOPMENT.md](DEVELOPMENT.md).
+
 ## Roadmap
 
 - **M0 (protocol spike)**: wire the `rqs_lib` front door to the domain and

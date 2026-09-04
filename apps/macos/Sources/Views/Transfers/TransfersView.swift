@@ -6,6 +6,7 @@ struct TransfersView: View {
     @State var category: HistoryEntry.Category = .all
     @State var query = ""
     @State var confirmingClear = false
+    @State var selectedEntry: HistoryEntry.ID?
 
     /// Only offer categories that something in the history actually falls
     /// into, so the control does not advertise empty filters.
@@ -24,6 +25,12 @@ struct TransfersView: View {
     /// clear on its own.
     private var isFiltered: Bool {
         category != .all || !query.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    /// The entry a selection-scoped menu or double-click refers to.
+    private func entry(for ids: Set<HistoryEntry.ID>) -> HistoryEntry? {
+        guard let id = ids.first else { return nil }
+        return state.history.first { $0.id == id }
     }
 
     var body: some View {
@@ -169,7 +176,7 @@ extension TransfersView {
                 } else {
                     // Rows are identified by the entry's own stable id, so a
                     // filter change is a diff rather than a rebuild.
-                    List(visibleHistory, id: \.id) { entry in
+                    List(visibleHistory, id: \.id, selection: $selectedEntry) { entry in
                         HistoryRow(entry: entry)
                             .listRowSeparator(.visible)
                             // Swipe left to forget a transfer. The wording is
@@ -182,17 +189,32 @@ extension TransfersView {
                                     Label("Remove", systemImage: "xmark.circle")
                                 }
                             }
-                            // The same action where macOS users look for it.
-                            .contextMenu {
-                                Button("Remove from History") {
-                                    state.removeFromHistory(entry)
-                                }
-                            }
                     }
                     .listStyle(.inset)
+                    // Deliberately no alternating stripes: inside the card
+                    // they continued past the last row as skeleton-like bars
+                    // and fought the panel. Separators + selection carry the
+                    // native reading on their own.
                     // The card supplies the surface; the list must not paint
                     // its own behind the rows.
                     .scrollContentBackground(.hidden)
+                    // Selection-scoped, the way native lists behave: a
+                    // right-click selects the row and menus it, and a
+                    // double-click opens the entry in whatever sense it has
+                    // an "open".
+                    .contextMenu(forSelectionType: HistoryEntry.ID.self) { ids in
+                        if let entry = entry(for: ids) {
+                            HistoryActions(entry: entry, iconOnly: false)
+                            Divider()
+                            Button("Remove from History") {
+                                state.removeFromHistory(entry)
+                            }
+                        }
+                    } primaryAction: { ids in
+                        if let entry = entry(for: ids) {
+                            HistoryActions.primary(for: entry, in: state)
+                        }
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
