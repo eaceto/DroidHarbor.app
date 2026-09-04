@@ -73,6 +73,49 @@ Real transfers need a host on the same LAN segment as the phone, running
 `avahi-daemon`, with UDP 5353 and the data port open. A container behind NAT
 will never be discovered, because mDNS does not cross it.
 
+### Host builds
+
+For development the app also builds directly on the host. `gtk4` and
+`libadwaita` are resolved through `pkg-config`, so without their development
+packages the `gdk4-sys` and `graphene-sys` build scripts fail on a missing
+`.pc` file before this crate compiles at all:
+
+```sh
+sudo apt install build-essential pkg-config protobuf-compiler \
+    libgtk-4-dev libadwaita-1-dev libdbus-1-dev adwaita-icon-theme
+cargo run --bin droidharbor
+```
+
+That list is the [`Dockerfile`](Dockerfile)'s, which is the point: Ubuntu 24.04
+ships GTK 4.14 and libadwaita 1.5, the exact versions the `v4_14` and `v1_5`
+features in `Cargo.toml` pin to. Older ones will not build. Newer ones build
+safely — the feature pins cap what the code may call either way — but a host
+build is never what ships, so releases stay in the container.
+
+### Log lines that look like failures and are not
+
+Two of these come out of `rqs_lib` at `error` level and cannot be filtered by
+message, so they stay visible. Neither stops a transfer:
+
+- `TcpServer: error while handling client: early eof (Finished)` — the peer
+  hung up after a **completed** transfer. `rqs_lib` knows it: the state in the
+  parentheses is its own, and on `Finished` it deliberately withholds the
+  `Disconnected` message it would otherwise send the front end. Only the
+  `error!` next to that check was never given the same nuance.
+- `Couldn't start BleAdvertiser: Failed to register advertisement` — BlueZ
+  rejecting the 24-byte `0xFE2C` service-data broadcast with `Invalid
+  Parameters (0x0d)`, which `bluetoothctl` reproduces with the same payload
+  while a plain broadcast on the same adapter registers fine. The BLE beacon
+  is only how a sender wakes a phone whose Quick Share screen is closed;
+  discovery itself is mDNS, so sending still works with that screen open —
+  which is what the switch's own subtitle asks for.
+
+A third is filtered out by the default `RUST_LOG` in `main.rs`: `zbus` warning
+that it could not populate a properties cache for an
+`/org/freedesktop/portal/desktop/request/…` object. The portal destroys a
+Request as soon as it answers, so `ashpd`'s cache lookup races the reply and
+loses, once per file picker, after the answer is already in hand.
+
 ## Running on macOS
 
 The app also builds and runs natively on a Mac. Linux remains the product:

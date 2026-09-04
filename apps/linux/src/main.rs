@@ -40,8 +40,14 @@ pub const APP_ID: &str = "dev.eaceto.apps.linux.droidharbor";
 fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "warn,droidharbor=info,dh_qs_core=info".into()),
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+                // zbus is held to `error`: the desktop portal destroys a
+                // Request object as soon as it answers, so the properties
+                // cache `GetAll` that ashpd fires at the same time races it
+                // and loses. It warns once per file picker and means nothing
+                // — the answer has already arrived.
+                "warn,zbus=error,droidharbor=info,dh_qs_core=info".into()
+            }),
         )
         .init();
 

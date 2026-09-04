@@ -29,7 +29,7 @@ dh-domain = { path = "crates/dh-domain" }
 # GPL). Our fork of Martichou/rquickshare: patches (e.g. configurable device
 # name) land there. Not on crates.io; pinned to an exact revision so protocol
 # behavior only changes when we deliberately bump it. Requires `protoc`.
-rqs_lib = { git = "https://github.com/eaceto/rquickshare", rev = "4c9c714148138a3ed4c456ceef508614a1c52c20" }
+rqs_lib = { git = "https://github.com/eaceto/rquickshare", rev = "08f3edcb1aa55441c3347f9243e7a1288baa505c" }
 
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net", "io-util"] }
 thiserror = "2"

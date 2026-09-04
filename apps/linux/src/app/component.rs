@@ -228,14 +228,25 @@ impl SimpleComponent for App {
         match msg {
             Msg::Refresh => {}
 
-            // Dispatched unconditionally: `self.receiving` lags the domain by
-            // a round trip, so comparing against it here would swallow the
-            // second half of a fast off-on-off. The domain acknowledges every
-            // command, and a switch reacting to its own state change is
-            // absorbed by the domain's own is-it-already-so check.
-            Msg::SetReceiving(on) => self.dispatch(Command::SetReceiving(on)),
+            // Dispatched unconditionally: comparing against the model here
+            // would swallow the second half of a fast off-on-off. The domain
+            // acknowledges every command, and a redundant one is absorbed by
+            // its own is-it-already-so check.
+            //
+            // The model moves now rather than waiting for that acknowledgement
+            // so the next render agrees with the switch the user just flipped.
+            // Left to lag, render would push the switch back to the old value
+            // for the length of the round trip — a visible bounce, and one the
+            // acknowledgements then chase.
+            Msg::SetReceiving(on) => {
+                self.receiving = on;
+                self.dispatch(Command::SetReceiving(on));
+            }
 
-            Msg::SetDiscovering(on) => self.dispatch(Command::SetDiscovering(on)),
+            Msg::SetDiscovering(on) => {
+                self.discovering = on;
+                self.dispatch(Command::SetDiscovering(on));
+            }
 
             Msg::Consent { session, decision } => {
                 // The same consent can be answered twice — the window card

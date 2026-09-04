@@ -11,11 +11,15 @@ use super::{add_group, GROUP_GAP};
 
 pub(super) struct SettingsBits {
     pub receiving_row: libadwaita::SwitchRow,
+    pub receiving_handler: gtk4::glib::SignalHandlerId,
     pub visible_as: libadwaita::ActionRow,
     pub destination_row: libadwaita::ActionRow,
     pub launch_row: libadwaita::SwitchRow,
+    pub launch_handler: gtk4::glib::SignalHandlerId,
     pub sounds_row: libadwaita::SwitchRow,
+    pub sounds_handler: gtk4::glib::SignalHandlerId,
     pub auto_off: libadwaita::ComboRow,
+    pub auto_off_handler: gtk4::glib::SignalHandlerId,
     pub trusted_group: libadwaita::PreferencesGroup,
     pub trusted_empty: libadwaita::ActionRow,
 }
@@ -33,12 +37,14 @@ pub(super) fn build_settings(
     let receiving_row = libadwaita::SwitchRow::builder()
         .title("Receive files")
         .build();
-    {
+    // Kept so `render` can move the switch from the model without the change
+    // reading back as a user action: see `sync_switch`.
+    let receiving_handler = {
         let sender = sender.clone();
         receiving_row.connect_active_notify(move |row| {
             sender.input(Msg::SetReceiving(row.is_active()));
-        });
-    }
+        })
+    };
     let visible_as = libadwaita::ActionRow::builder().title("Visible as").build();
     let destination_row = libadwaita::ActionRow::builder().title("Save to").build();
     let change = gtk4::Button::with_label("Change…");
@@ -82,12 +88,12 @@ pub(super) fn build_settings(
         .title("Open at login")
         .subtitle("Starts DroidHarbor when you log in")
         .build();
-    {
+    let launch_handler = {
         let sender = sender.clone();
         launch_row.connect_active_notify(move |row| {
             sender.input(Msg::SetLaunchAtLogin(row.is_active()));
-        });
-    }
+        })
+    };
     let auto_off = libadwaita::ComboRow::builder()
         .title("Turn receiving off when idle")
         .model(&gtk4::StringList::new(&[
@@ -97,7 +103,7 @@ pub(super) fn build_settings(
             "After 1 hour",
         ]))
         .build();
-    {
+    let auto_off_handler = {
         let sender = sender.clone();
         auto_off.connect_selected_notify(move |row| {
             let minutes = AUTO_OFF_CHOICES
@@ -105,18 +111,18 @@ pub(super) fn build_settings(
                 .copied()
                 .unwrap_or(0);
             sender.input(Msg::SetAutoOff(minutes));
-        });
-    }
+        })
+    };
     let sounds_row = libadwaita::SwitchRow::builder()
         .title("Play sounds")
         .subtitle("Ask the notification server for a sound when a transfer finishes")
         .build();
-    {
+    let sounds_handler = {
         let sender = sender.clone();
         sounds_row.connect_active_notify(move |row| {
             sender.input(Msg::SetPlaySounds(row.is_active()));
-        });
-    }
+        })
+    };
 
     let updates_row = libadwaita::ActionRow::builder()
         .title("Check for updates")
@@ -210,11 +216,15 @@ pub(super) fn build_settings(
         page.upcast(),
         SettingsBits {
             receiving_row,
+            receiving_handler,
             visible_as,
             destination_row,
             launch_row,
+            launch_handler,
             sounds_row,
+            sounds_handler,
             auto_off,
+            auto_off_handler,
             trusted_group,
             trusted_empty,
         },

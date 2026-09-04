@@ -12,6 +12,7 @@ use super::{add_group, padded, resolved_icon, GROUP_GAP};
 
 pub(super) struct SendBits {
     pub discovering_row: libadwaita::SwitchRow,
+    pub discovering_handler: gtk4::glib::SignalHandlerId,
     pub staged_headline: gtk4::Label,
     pub staged_detail: gtk4::Label,
     pub staged_area: gtk4::Box,
@@ -45,12 +46,14 @@ pub(super) fn build_send(sender: &ComponentSender<App>) -> (gtk4::Widget, CardWi
         .title("Look for nearby devices")
         .subtitle("The phone must have its Quick Share screen open to be found")
         .build();
-    {
+    // The handler id is kept so `render` can set the switch from the model
+    // without that read back as a user action: see `sync_switch`.
+    let discovering_handler = {
         let sender = sender.clone();
         discovering_row.connect_active_notify(move |row| {
             sender.input(Msg::SetDiscovering(row.is_active()));
-        });
-    }
+        })
+    };
     let discovery_group = libadwaita::PreferencesGroup::new();
     discovery_group.add(&discovering_row);
     add_group(&page, &discovery_group);
@@ -172,6 +175,7 @@ pub(super) fn build_send(sender: &ComponentSender<App>) -> (gtk4::Widget, CardWi
         outgoing,
         SendBits {
             discovering_row,
+            discovering_handler,
             staged_headline,
             staged_detail,
             staged_area,

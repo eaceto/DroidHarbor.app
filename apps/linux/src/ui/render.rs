@@ -13,6 +13,26 @@ use super::{glib_escape, AppWidgets};
 /// How long a banner stays before retiring itself.
 const NOTICE_LIFETIME: std::time::Duration = std::time::Duration::from_secs(3);
 
+/// Move a switch to where the model says it is, without that reading back as
+/// if the user had flipped it.
+///
+/// `set_active` emits `notify::active` synchronously, so the handler would
+/// send the opposite command straight back. The model lags the domain by a
+/// round trip, so the render right after a flip still sees the old value and
+/// would push the switch back — the domain then acknowledges both the flip and
+/// the undo, each acknowledgement moves the switch again, and the two ping-pong
+/// for as long as the app runs. On the discovery switch that meant a fresh
+/// mDNS browser and BLE advertisement per cycle, until the process ran out of
+/// file descriptors. Blocking the handler makes a render a one-way write.
+fn sync_switch(row: &libadwaita::SwitchRow, handler: &gtk4::glib::SignalHandlerId, on: bool) {
+    if row.is_active() == on {
+        return;
+    }
+    row.block_signal(handler);
+    row.set_active(on);
+    row.unblock_signal(handler);
+}
+
 pub fn render(model: &App, widgets: &mut AppWidgets, sender: &ComponentSender<App>) {
     match &model.notice {
         Some(text) => {
@@ -31,24 +51,34 @@ pub fn render(model: &App, widgets: &mut AppWidgets, sender: &ComponentSender<Ap
         None => widgets.notice_banner.set_revealed(false),
     }
 
-    if widgets.receiving_row.is_active() != model.receiving {
-        widgets.receiving_row.set_active(model.receiving);
-    }
-    if widgets.discovering_row.is_active() != model.discovering {
-        widgets.discovering_row.set_active(model.discovering);
-    }
-    if widgets.launch_row.is_active() != model.prefs.launch_at_login {
-        widgets.launch_row.set_active(model.prefs.launch_at_login);
-    }
-    if widgets.sounds_row.is_active() != model.prefs.play_sounds {
-        widgets.sounds_row.set_active(model.prefs.play_sounds);
-    }
+    sync_switch(
+        &widgets.receiving_row,
+        &widgets.receiving_handler,
+        model.receiving,
+    );
+    sync_switch(
+        &widgets.discovering_row,
+        &widgets.discovering_handler,
+        model.discovering,
+    );
+    sync_switch(
+        &widgets.launch_row,
+        &widgets.launch_handler,
+        model.prefs.launch_at_login,
+    );
+    sync_switch(
+        &widgets.sounds_row,
+        &widgets.sounds_handler,
+        model.prefs.play_sounds,
+    );
     let auto_index = AUTO_OFF_CHOICES
         .iter()
         .position(|minutes| *minutes == model.prefs.auto_off_minutes)
         .unwrap_or(0) as u32;
     if widgets.auto_off.selected() != auto_index {
+        widgets.auto_off.block_signal(&widgets.auto_off_handler);
         widgets.auto_off.set_selected(auto_index);
+        widgets.auto_off.unblock_signal(&widgets.auto_off_handler);
     }
     // The name is always here: while receiving it is what phones can see,
     // and while off it is what they would see, so a rename reads back
